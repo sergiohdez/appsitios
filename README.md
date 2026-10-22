@@ -6,7 +6,7 @@ Primer corte de una aplicación web multiempresa para solicitar, aprobar y consu
 
 Este repositorio contiene una base ejecutable para autenticación por sesión, contexto de cliente, consulta/creación de sitios, bandejas y flujo de solicitudes, aprobación/rechazo, adjuntos privados, bitácora, estructura inicial de cobro por puesto y pruebas unitarias/de integración. Aún requiere completar administración de usuarios por invitación, formularios configurables de cada sitio, gestión del administrador de plataforma y su MFA/recuperación antes de tratarse como producto listo para producción.
 
-El entorno local se verificó con PHP 8.5.12 y Composer 2.10.3. Laravel 13 requiere PHP 8.3 o posterior; se actualizó el proyecto a Laravel 13 y Composer resolverá un nuevo `composer.lock` compatible con el runtime actual. PHP 8.5.12 es una versión de seguridad publicada el 21 de octubre de 2026 que corrige vulnerabilidades críticas; conserva esta versión parcheada y verifica extensiones antes de ejecutar la aplicación ([requisitos de Laravel](https://laravel.com/framework/docs/deployment), [aviso de PHP 8.5.12](https://www.php.net/releases/8_5_12.php)).
+El entorno local se verificó con PHP 8.5.12 y Composer 2.10.3. Laravel 13 requiere PHP 8.3 o posterior; el proyecto usa Laravel 13.38.0 y Composer actualizó `composer.lock` e instaló las dependencias. PHP 8.5.12 es una versión de seguridad publicada el 21 de octubre de 2026 que corrige vulnerabilidades críticas; conserva esta versión parcheada y verifica extensiones antes de ejecutar la aplicación ([requisitos de Laravel](https://laravel.com/framework/docs/deployment), [aviso de PHP 8.5.12](https://www.php.net/releases/8_5_12.php)).
 
 ## Stack propuesto
 
