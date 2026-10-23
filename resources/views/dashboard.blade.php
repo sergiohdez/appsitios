@@ -9,7 +9,7 @@
 </head>
 <body>
     <header class="topbar">
-        <a class="brand" href="/">Acceso<span>Claro</span></a>
+        <a class="brand" href="/">Acceso<span>Sitios</span></a>
         <div class="topbar-user"><span>{{ auth()->user()->name }}</span>
             <form method="post" action="{{ route('logout') }}">@csrf<button class="button quiet" type="submit">Salir</button></form>
         </div>

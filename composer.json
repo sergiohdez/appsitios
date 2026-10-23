@@ -42,6 +42,9 @@
         "optimize-autoloader": false,
         "preferred-install": "dist",
         "sort-packages": true,
+        "platform": {
+            "php": "8.3.0"
+        },
         "allow-plugins": {
             "php-http/discovery": true
         }

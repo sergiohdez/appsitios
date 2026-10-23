@@ -9,7 +9,7 @@
 </head>
 <body class="auth-page">
     <main class="auth-card">
-        <a class="brand" href="/">Acceso<span>Claro</span></a>
+        <a class="brand" href="/">Acceso<span>Sitios</span></a>
         <p class="eyebrow">PORTAL DE ACCESO</p>
         <h1>Inicia sesión</h1>
         <p class="muted">Gestiona solicitudes y aprobaciones de tus sitios.</p>
