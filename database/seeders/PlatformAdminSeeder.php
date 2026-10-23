@@ -49,9 +49,10 @@ class PlatformAdminSeeder extends Seeder
                 PlatformAdminAccount::query()->create([
                     'singleton_id' => 1,
                     'user_id' => $user->id,
-                    // MFA enrollment is not yet implemented in this MVP.
-                    'mfa_required' => false,
+                    'mfa_required' => true,
                 ]);
+            } elseif (! $existingAccount->mfa_required) {
+                $existingAccount->forceFill(['mfa_required' => true])->save();
             }
         });
 

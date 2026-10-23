@@ -3,15 +3,15 @@
 namespace App\Console\Commands;
 
 use App\Models\PlatformAdminAccount;
+use App\Models\PlatformAdminRecoveryCode;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Validation\ValidationException;
 
 class ResetPlatformAdminPassword extends Command
 {
-    protected $signature = 'platform-admin:reset-password';
+    protected $signature = 'platform-admin:reset-password {--reset-mfa : Obliga a volver a registrar el autenticador y reemplaza los códigos de recuperación}';
 
     protected $description = 'Restablece la contraseña del administrador único de plataforma desde la consola del servidor.';
 
@@ -42,9 +42,21 @@ class ResetPlatformAdminPassword extends Command
             return self::FAILURE;
         }
 
-        DB::transaction(function () use ($account, $password): void {
+        $resetMfa = (bool) $this->option('reset-mfa');
+
+        DB::transaction(function () use ($account, $password, $resetMfa): void {
             $account->user->forceFill(['password' => Hash::make($password)])->save();
             $account->user->tokens()->delete();
+
+            if ($resetMfa) {
+                $account->forceFill([
+                    'mfa_secret' => null,
+                    'mfa_enabled_at' => null,
+                    'mfa_last_used_step' => null,
+                    'mfa_required' => true,
+                ])->save();
+                PlatformAdminRecoveryCode::query()->delete();
+            }
 
             if (Schema::hasTable('sessions')) {
                 DB::table('sessions')->where('user_id', $account->user_id)->delete();
@@ -52,6 +64,10 @@ class ResetPlatformAdminPassword extends Command
         });
 
         $this->info('Contraseña restablecida. Las sesiones y tokens existentes fueron revocados.');
+
+        if ($resetMfa) {
+            $this->warn('El siguiente inicio de sesión requerirá registrar un nuevo autenticador.');
+        }
 
         return self::SUCCESS;
     }

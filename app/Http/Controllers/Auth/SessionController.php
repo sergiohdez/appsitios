@@ -25,9 +25,17 @@ class SessionController extends Controller
         }
 
         $request->session()->regenerate();
+        $request->session()->forget([
+            'platform_admin.mfa_verified_user_id',
+            'platform_admin.mfa_verified_at',
+            'platform_admin.mfa_setup_secret',
+            'platform_admin.mfa_setup_expires_at',
+        ]);
 
-        if ($request->user()->platformAdminAccount()->exists()) {
-            return redirect()->route('platform.dashboard');
+        $platformAdmin = $request->user()->platformAdminAccount()->first();
+
+        if ($platformAdmin) {
+            return redirect()->route($platformAdmin->mfa_enabled_at ? 'platform.mfa.challenge' : 'platform.mfa.setup');
         }
 
         return redirect()->intended(route('dashboard'));

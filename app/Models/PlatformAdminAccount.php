@@ -12,12 +12,20 @@ class PlatformAdminAccount extends Model
     public $incrementing = false;
     protected $keyType = 'int';
     public $timestamps = false;
-    protected $fillable = ['singleton_id', 'user_id', 'mfa_required'];
+    protected $fillable = [
+        'singleton_id', 'user_id', 'mfa_required', 'mfa_secret',
+        'mfa_enabled_at', 'mfa_last_used_step',
+    ];
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
 
     protected function casts(): array
     {
-        return ['mfa_required' => 'boolean'];
+        return [
+            'mfa_required' => 'boolean',
+            'mfa_secret' => 'encrypted',
+            'mfa_enabled_at' => 'datetime',
+            'mfa_last_used_step' => 'integer',
+        ];
     }
 }

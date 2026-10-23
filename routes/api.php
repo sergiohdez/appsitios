@@ -5,7 +5,7 @@ use App\Http\Controllers\Api\AccessRequestController;
 use App\Http\Controllers\Api\SiteController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->middleware(['auth:sanctum', 'tenant', 'throttle:120,1'])->group(function (): void {
+Route::prefix('v1')->middleware(['auth:sanctum', 'platform-admin.mfa', 'tenant', 'throttle:120,1'])->group(function (): void {
     Route::get('/me', fn () => response()->json(['data' => auth()->user()->only('id', 'name', 'email')]))
         ->name('api.me');
     Route::get('/sites', [SiteController::class, 'index'])->name('api.sites.index');

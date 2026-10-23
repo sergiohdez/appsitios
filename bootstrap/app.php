@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\EnsurePlatformAdmin;
+use App\Http\Middleware\EnsurePlatformAdminMfa;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'tenant' => ResolveTenant::class,
             'platform-admin' => EnsurePlatformAdmin::class,
+            'platform-admin.mfa' => EnsurePlatformAdminMfa::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

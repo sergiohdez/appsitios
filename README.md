@@ -4,7 +4,7 @@
 
 AppSitios es una aplicación web SaaS para gestionar solicitudes de ingreso a sitios físicos con acceso restringido. Cada cliente trabaja en un espacio separado y paga una tarifa mensual según la cantidad de usuarios internos activos.
 
-El proyecto está en etapa MVP. Contiene la base para autenticación, separación de datos por cliente y el flujo de solicitudes; la consola completa de administración, la autenticación multifactor y la facturación automática aún están en desarrollo. No está listo para operar con datos sensibles en producción.
+El proyecto incluye autenticación, espacios de cliente aislados, solicitudes, aprobaciones, adjuntos privados, una consola de administración con alta, búsqueda, consulta, edición y suspensión de clientes, y autenticación multifactor obligatoria para el administrador. La facturación y el cobro automático aún requieren integrar un proveedor y definir las reglas comerciales. Antes de operar con datos sensibles en producción, configura y revisa el entorno de despliegue.
 
 ## Cómo funciona
 
@@ -13,7 +13,7 @@ El proyecto está en etapa MVP. Contiene la base para autenticación, separació
 3. Un aprobador revisa las solicitudes que tiene asignadas y las aprueba o rechaza. Los usuarios pueden tener más de una función, pero no pueden aprobar sus propias solicitudes.
 4. Las decisiones y cambios relevantes quedan disponibles para consulta. Los datos de un cliente no se muestran a los demás.
 
-El alta inicial crea una cuenta administradora de plataforma única. Por ahora, esa cuenta puede iniciar sesión y consultar un resumen general; las herramientas para gestionar clientes y usuarios desde una consola aún están pendientes.
+El alta inicial crea una cuenta administradora de plataforma única. En el primer inicio de sesión debe configurar una aplicación compatible con TOTP y guardar los códigos de recuperación, que se muestran una sola vez. Un operador autorizado del servidor puede restablecer la contraseña y forzar una nueva inscripción de MFA con `php artisan platform-admin:reset-password --reset-mfa`.
 
 ## Cómo instalarla en un ambiente desde cero
 
@@ -82,7 +82,7 @@ php artisan serve
 
 Abre [http://127.0.0.1:8000/login](http://127.0.0.1:8000/login) e ingresa con el correo y la contraseña configurados en `INITIAL_ADMIN_EMAIL` y `INITIAL_ADMIN_PASSWORD`.
 
-Si el administrador pierde el acceso, un operador con acceso a la consola del servidor puede ejecutar `php artisan platform-admin:reset-password`. El comando confirma el correo registrado, solicita una nueva contraseña y revoca las sesiones y tokens existentes. No crea una segunda cuenta administradora.
+Si el administrador pierde el acceso, un operador autorizado con acceso a la consola del servidor puede ejecutar `php artisan platform-admin:reset-password --reset-mfa`. El comando confirma el correo registrado, solicita una nueva contraseña, revoca sesiones y tokens, elimina los códigos de recuperación anteriores y requiere configurar un autenticador nuevo. No crea una segunda cuenta administradora.
 
 ### Pruebas
 
@@ -92,4 +92,4 @@ Para ejecutar las pruebas automatizadas del proyecto:
 php artisan test
 ```
 
-Antes de exponer una instalación en Internet, configura HTTPS, `APP_DEBUG=false`, copias de seguridad, almacenamiento privado para adjuntos y un mecanismo de autenticación multifactor. La configuración de desarrollo anterior no debe reutilizarse como configuración de producción.
+Antes de exponer una instalación en Internet, configura HTTPS, `APP_DEBUG=false`, copias de seguridad, almacenamiento privado para adjuntos, correo saliente y monitoreo. La configuración de desarrollo anterior no debe reutilizarse como configuración de producción.
