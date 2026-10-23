@@ -1,66 +1,95 @@
-# Acceso Claro — SaaS de solicitudes de acceso
+# AppSitios
 
-Primer corte de una aplicación web multiempresa para solicitar, aprobar y consultar permisos de ingreso a sitios físicos. La interfaz usa Blade, JavaScript y CSS; el backend expone una API REST versionada en Laravel.
+## Qué es la aplicación
 
-## Estado del código
+AppSitios es una aplicación web SaaS para gestionar solicitudes de ingreso a sitios físicos con acceso restringido. Cada cliente trabaja en un espacio separado y paga una tarifa mensual según la cantidad de usuarios internos activos.
 
-Este repositorio contiene una base ejecutable para autenticación por sesión, contexto de cliente, consulta/creación de sitios, bandejas y flujo de solicitudes, aprobación/rechazo, adjuntos privados, bitácora, estructura inicial de cobro por puesto y pruebas unitarias/de integración. Aún requiere completar administración de usuarios por invitación, formularios configurables de cada sitio, gestión del administrador de plataforma y su MFA/recuperación antes de tratarse como producto listo para producción.
+El proyecto está en etapa MVP. Contiene la base para autenticación, separación de datos por cliente y el flujo de solicitudes; la consola completa de administración, la autenticación multifactor y la facturación automática aún están en desarrollo. No está listo para operar con datos sensibles en producción.
 
-El entorno local se verificó con PHP 8.5.12 y Composer 2.10.3. Laravel 13 requiere PHP 8.3 o posterior; el proyecto usa Laravel 13.38.0 y Composer actualizó `composer.lock` e instaló las dependencias. PHP 8.5.12 es una versión de seguridad publicada el 21 de octubre de 2026 que corrige vulnerabilidades críticas; conserva esta versión parcheada y verifica extensiones antes de ejecutar la aplicación ([requisitos de Laravel](https://laravel.com/framework/docs/deployment), [aviso de PHP 8.5.12](https://www.php.net/releases/8_5_12.php)).
+## Cómo funciona
 
-## Stack propuesto
+1. Un gestor administra los usuarios y los sitios de su cliente.
+2. Un solicitante indica el sitio, el motivo y el horario de ingreso, registra a las personas que lo visitarán y adjunta los documentos requeridos.
+3. Un aprobador revisa las solicitudes que tiene asignadas y las aprueba o rechaza. Los usuarios pueden tener más de una función, pero no pueden aprobar sus propias solicitudes.
+4. Las decisiones y cambios relevantes quedan disponibles para consulta. Los datos de un cliente no se muestran a los demás.
 
-- PHP 8.3+ y Laravel 13 (MVC, middleware, validación, políticas, sesiones, almacenamiento y pruebas integradas).
-- MariaDB Community Server como primera opción de base de datos; MySQL Community Edition también funciona con el driver `mysql` de Laravel.
-- Sanctum: cookies de sesión/CSRF para la SPA de primera parte; tokens con abilities solo para integraciones externas futuras.
-- Blade, JavaScript nativo y CSS para la primera interfaz, sin proceso de build de Node requerido.
-- PHPUnit para unit tests y pruebas de integración HTTP; GitHub Actions para ejecutarlas contra MariaDB.
+El alta inicial crea una cuenta administradora de plataforma única. Por ahora, esa cuenta puede iniciar sesión y consultar un resumen general; las herramientas para gestionar clientes y usuarios desde una consola aún están pendientes.
 
-## Preparación local
+## Cómo instalarla en un ambiente desde cero
 
-1. PHP 8.5.12 y Composer 2 ya están instalados en el entorno actual. PHP debe tener las extensiones Laravel `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `hash`, `mbstring`, `openssl`, `pcre`, `pdo`, `session`, `tokenizer` y `xml`; habilita `pdo_mysql` para MariaDB y `pdo_sqlite` para pruebas locales. Instala MariaDB.
-2. Crea una base de datos y un usuario de aplicación con privilegios sobre esa base. Evita usar `root` desde la aplicación.
-3. En la raíz del proyecto ejecuta:
+### Requisitos
 
-   ```powershell
-   composer install
-   Copy-Item .env.example .env
-   php artisan key:generate
-   php artisan migrate
-   php artisan serve
-   ```
+- PHP 8.3 o posterior, con `pdo_mysql`, `mbstring`, `openssl`, `fileinfo`, `xml`, `ctype`, `curl`, `dom` y `tokenizer` habilitadas.
+- Composer 2.
+- MariaDB o MySQL.
+- Git.
 
-4. Para iniciar con datos de demostración, define `DEMO_ADMIN_EMAIL` y `DEMO_ADMIN_PASSWORD` en `.env`, ejecuta `php artisan db:seed` y abre `http://127.0.0.1:8000/login`. Para probar aprobación sin autoaprobación, configura además `DEMO_APPROVER_EMAIL` y `DEMO_APPROVER_PASSWORD`; será una cuenta diferente asignada a la sede demo. El seeder solo funciona con `APP_ENV=local`; no habilites registros públicos.
+jQuery 4.0.0 se sirve desde el propio proyecto. No necesitas instalar Node.js, npm ni descargar JavaScript desde un CDN para ejecutar la aplicación. [Anuncio oficial de jQuery 4.0.0](https://blog.jquery.com/2026/01/17/jquery-4-0-0/).
 
-En producción configura `APP_DEBUG=false`, cookies `Secure`, HTTPS, una clave de cifrado guardada en un gestor de secretos, almacenamiento de adjuntos privado, correo transaccional, copias cifradas y colas. `CACHE_STORE=database` y `QUEUE_CONNECTION=database` tienen sus tablas incluidas para desarrollo; para producción multiinstancia migra a Redis y almacenamiento de objetos privado con políticas equivalentes.
+### 1. Descargar el proyecto e instalar dependencias
 
-## Abrir en IntelliJ IDEA
+```sh
+git clone https://github.com/sergiohdez/appsitios.git
+cd appsitios
+composer install
+```
 
-1. Abre `D:\Apps\Permisos` como proyecto existente. En IntelliJ IDEA Ultimate instala los plugins PHP y Blade desde **Settings → Plugins**; el soporte PHP no viene habilitado en la instalación base. Laravel Idea es opcional.
-2. En **Settings → PHP**, selecciona el intérprete PHP 8.5.12 disponible; configura Composer y el nivel de lenguaje correspondiente. Comprueba que el intérprete ve las extensiones indicadas arriba.
-3. Configura MariaDB como Data Source desde **Database**, crea `.env` copiando `.env.example` y apunta `DB_*` a la base local.
-4. Ejecuta `composer install` desde la terminal integrada; abre `artisan` como configuración de PHP Script si quieres perfiles separados para `migrate`, `serve` y `test`.
-5. Activa la integración Git del IDE y usa el remoto público `https://github.com/sergiohdez/appsitios`. El workflow de pruebas ya está en `.github/workflows/tests.yml`.
+### 2. Crear la base de datos y configurar el entorno
 
-## Ejecutar pruebas
+Crea una base de datos y un usuario exclusivos para la aplicación. Ejemplo en MariaDB/MySQL; reemplaza la contraseña por una segura:
 
-```powershell
+```sql
+CREATE DATABASE appsitios CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'appsitios'@'127.0.0.1' IDENTIFIED BY 'CAMBIA_ESTA_CLAVE';
+GRANT ALL PRIVILEGES ON appsitios.* TO 'appsitios'@'127.0.0.1';
+```
+
+Copia `.env.example` como `.env` (en PowerShell puedes usar `Copy-Item .env.example .env`; en macOS/Linux, `cp .env.example .env`) y configura al menos:
+
+```dotenv
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=appsitios
+DB_USERNAME=appsitios
+DB_PASSWORD="CAMBIA_ESTA_CLAVE"
+
+INITIAL_ADMIN_NAME="Administrador de plataforma"
+INITIAL_ADMIN_EMAIL=admin@tu-dominio.com
+INITIAL_ADMIN_PASSWORD="USA_UNA_FRASE_SECRETA_DE_16_CARACTERES_O_MAS"
+```
+
+Usa una dirección de correo que controles y una contraseña única de al menos 16 caracteres. No compartas ni subas el archivo `.env` al repositorio.
+
+### 3. Crear las tablas y el administrador inicial
+
+```sh
+php artisan key:generate
+php artisan migrate --seed
+```
+
+Las migraciones de Laravel generan las tablas, índices y relaciones de la base de datos. El seeder `PlatformAdminSeeder`, mediante Eloquent, crea el usuario inicial y lo vincula como administrador único de la plataforma. El proceso es idempotente: volver a ejecutarlo no cambia la contraseña de una cuenta ya creada.
+
+### 4. Iniciar sesión
+
+```sh
+php artisan serve
+```
+
+Abre [http://127.0.0.1:8000/login](http://127.0.0.1:8000/login) e ingresa con el correo y la contraseña configurados en `INITIAL_ADMIN_EMAIL` y `INITIAL_ADMIN_PASSWORD`.
+
+Si el administrador pierde el acceso, un operador con acceso a la consola del servidor puede ejecutar `php artisan platform-admin:reset-password`. El comando confirma el correo registrado, solicita una nueva contraseña y revoca las sesiones y tokens existentes. No crea una segunda cuenta administradora.
+
+### Pruebas
+
+Para ejecutar las pruebas automatizadas del proyecto:
+
+```sh
 php artisan test
 ```
 
-`tests/Unit` cubre reglas aisladas de decisión. `tests/Feature` verifica peticiones HTTP con base de datos, incluida la separación entre clientes y la prohibición de autoaprobación. Los tests de feature usan SQLite en memoria para ser rápidos; el workflow de GitHub además ejecuta las migraciones y pruebas contra MariaDB.
-
-## Rutas implementadas
-
-- `GET /login`, `POST /login`, `POST /logout` — sesión web protegida por CSRF y límite de intentos.
-- `GET /api/v1/me` — identidad autenticada.
-- `GET|POST /api/v1/sites` — listar sitios disponibles o crear (gestores).
-- `GET|POST /api/v1/access-requests` — bandeja visible según membresía y creación de solicitud.
-- `GET /api/v1/access-requests/{ulid}` — detalle si es solicitante, gestor o aprobador asignado.
-- `POST /api/v1/access-requests/{ulid}/approve|reject` — decisión transaccional con bloqueo de fila.
-- `GET /api/v1/access-requests/{ulid}/attachments/{ulid}` — descarga autorizada desde almacenamiento privado.
-
-## Documentación
-
-- [Validación de mercado](docs/validacion-mercado.md)
-- [Diseño técnico y plan de construcción](docs/diseno-tecnico.md)
+Antes de exponer una instalación en Internet, configura HTTPS, `APP_DEBUG=false`, copias de seguridad, almacenamiento privado para adjuntos y un mecanismo de autenticación multifactor. La configuración de desarrollo anterior no debe reutilizarse como configuración de producción.

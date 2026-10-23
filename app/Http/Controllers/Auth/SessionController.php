@@ -26,6 +26,10 @@ class SessionController extends Controller
 
         $request->session()->regenerate();
 
+        if ($request->user()->platformAdminAccount()->exists()) {
+            return redirect()->route('platform.dashboard');
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 

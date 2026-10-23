@@ -1,74 +1,156 @@
-const labels={pending:'Pendiente',approved:'Aprobada',rejected:'Rechazada',cancelled:'Cancelada'};
-const flash=document.querySelector('#flash');
+const labels = {
+  pending: 'Pendiente',
+  approved: 'Aprobada',
+  rejected: 'Rechazada',
+  cancelled: 'Cancelada',
+};
 
-function xsrfToken(){
-  const row=document.cookie.split('; ').find(item=>item.startsWith('XSRF-TOKEN='));
-  return row?decodeURIComponent(row.split('=').slice(1).join('=')):'';
+function csrfToken() {
+  const cookie = document.cookie.split('; ').find((item) => item.startsWith('XSRF-TOKEN='));
+
+  return cookie ? decodeURIComponent(cookie.substring('XSRF-TOKEN='.length)) : '';
 }
 
-async function api(path,options={}){
-  const response=await fetch(path,{credentials:'same-origin',...options,headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest',...(options.body?{'X-XSRF-TOKEN':xsrfToken()}:{}),...(options.headers||{})}});
-  if(response.status===401){window.location.assign('/login');throw new Error('Tu sesión terminó. Ingresa de nuevo.');}
-  const payload=await response.json().catch(()=>({}));
-  if(!response.ok){const message=payload.message||Object.values(payload.errors||{}).flat()[0]||'No fue posible completar la operación.';throw new Error(message);}
-  return payload;
+$.ajaxSetup({
+  headers: {
+    Accept: 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+  },
+  beforeSend(xhr, settings) {
+    if (settings.type !== 'GET' && settings.type !== 'HEAD' && csrfToken()) {
+      xhr.setRequestHeader('X-XSRF-TOKEN', csrfToken());
+    }
+  },
+});
+
+function api(path, options = {}) {
+  return $.ajax({ url: path, ...options });
 }
 
-function showMessage(message,type='success'){
-  flash.innerHTML=`<div class="notice ${type}" role="status"></div>`;
-  flash.firstElementChild.textContent=message;
-  window.setTimeout(()=>{flash.replaceChildren();},5500);
+function errorMessage(error) {
+  if (error.status === 401) {
+    window.location.assign('/login');
+
+    return 'Tu sesión terminó. Ingresa de nuevo.';
+  }
+
+  const payload = error.responseJSON || {};
+  const firstValidationError = Object.values(payload.errors || {}).flat()[0];
+
+  return payload.message || firstValidationError || 'No fue posible completar la operación.';
 }
 
-function formatDate(value){
-  return new Intl.DateTimeFormat('es-CO',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));
+function showMessage(message, type = 'success') {
+  const $flash = $('#flash');
+
+  $('<div>', { class: `notice ${type}`, role: 'status' })
+    .text(message)
+    .appendTo($flash.empty());
+
+  window.setTimeout(() => $flash.empty(), 5500);
 }
 
-async function loadSites(){
-  const select=document.querySelector('#site_id');
-  try{
-    const {data}=await api('/api/v1/sites');
-    select.replaceChildren(new Option(data.length?'Selecciona un sitio':'No tienes sitios activos', ''));
-    for(const site of data) select.add(new Option(site.name,site.id));
-  }catch(error){showMessage(error.message,'error');}
+function formatDate(value) {
+  return new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
-async function loadRequests(){
-  const list=document.querySelector('#request-list');
-  list.innerHTML='<div class="loading-state">Cargando solicitudes…</div>';
-  try{
-    const result=await api('/api/v1/access-requests');
-    const requests=result.data.data||[];
-    if(!requests.length){list.innerHTML='<div class="empty-state">Aún no hay solicitudes para mostrar.</div>';return;}
-    list.replaceChildren(...requests.map(item=>{
-      const row=document.createElement('article');row.className='request-row';
-      const info=document.createElement('div');
-      const title=document.createElement('p');title.className='request-title';title.textContent=item.site?.name||'Sitio';
-      const meta=document.createElement('p');meta.className='request-meta';meta.textContent=`${formatDate(item.requested_from)} · ${item.people?.length||0} persona(s)`;
-      const purpose=document.createElement('p');purpose.className='request-purpose';purpose.textContent=item.purpose;
-      info.append(title,meta);const badge=document.createElement('span');badge.className=`badge ${item.status}`;badge.textContent=labels[item.status]||item.status;
-      row.append(info,badge,purpose);return row;
+async function loadSites() {
+  const $select = $('#site_id');
+
+  try {
+    const result = await api('/api/v1/sites');
+    const sites = result.data || [];
+
+    $select.empty().append($('<option>', {
+      value: '',
+      text: sites.length ? 'Selecciona un sitio' : 'No tienes sitios activos',
     }));
-  }catch(error){list.innerHTML='';showMessage(error.message,'error');}
+
+    sites.forEach((site) => $select.append($('<option>', { value: site.id, text: site.name })));
+  } catch (error) {
+    showMessage(errorMessage(error), 'error');
+  }
 }
 
-async function submitRequest(event){
+async function loadRequests() {
+  const $list = $('#request-list');
+
+  $list.html('<div class="loading-state">Cargando solicitudes…</div>');
+
+  try {
+    const result = await api('/api/v1/access-requests');
+    const requests = result.data?.data || [];
+
+    if (!requests.length) {
+      $list.html('<div class="empty-state">Aún no hay solicitudes para mostrar.</div>');
+
+      return;
+    }
+
+    $list.empty();
+
+    requests.forEach((item) => {
+      const $row = $('<article>', { class: 'request-row' });
+      const $info = $('<div>');
+      const $title = $('<p>', { class: 'request-title' }).text(item.site?.name || 'Sitio');
+      const $meta = $('<p>', { class: 'request-meta' }).text(`${formatDate(item.requested_from)} · ${item.people?.length || 0} persona(s)`);
+      const $purpose = $('<p>', { class: 'request-purpose' }).text(item.purpose);
+      const $badge = $('<span>', { class: `badge ${item.status}` }).text(labels[item.status] || item.status);
+
+      $info.append($title, $meta);
+      $row.append($info, $badge, $purpose).appendTo($list);
+    });
+  } catch (error) {
+    $list.empty();
+    showMessage(errorMessage(error), 'error');
+  }
+}
+
+async function submitRequest(event) {
   event.preventDefault();
-  const form=event.currentTarget;const button=form.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Enviando…';
-  try{
+
+  const form = event.currentTarget;
+  const $form = $(form);
+  const $button = $form.find('button[type="submit"]');
+  const body = new FormData(form);
+
+  $button.prop('disabled', true).text('Enviando…');
+
+  try {
     await api('/sanctum/csrf-cookie');
-    const body=new FormData();
-    body.append('site_id',form.site_id.value);body.append('purpose',form.purpose.value.trim());
-    body.append('requested_from',new Date(form.requested_from.value).toISOString());body.append('requested_until',new Date(form.requested_until.value).toISOString());
-    body.append('people[0][full_name]',form.person_name.value.trim());body.append('people[0][document_type]',form.document_type.value.trim());
-    body.append('people[0][document_number]',form.document_number.value.trim());body.append('people[0][company]',form.company.value.trim());
-    for(const file of form.attachments.files)body.append('attachments[]',file);
-    await api('/api/v1/access-requests',{method:'POST',body});
-    form.reset();showMessage('Solicitud enviada a aprobación.');await loadRequests();
-  }catch(error){showMessage(error.message,'error');}
-  finally{button.disabled=false;button.innerHTML='Enviar para aprobación <span aria-hidden="true">→</span>';}
+    body.delete('attachments');
+    body.set('purpose', form.elements.purpose.value.trim());
+    body.set('requested_from', new Date(form.elements.requested_from.value).toISOString());
+    body.set('requested_until', new Date(form.elements.requested_until.value).toISOString());
+    body.set('people[0][full_name]', form.elements.person_name.value.trim());
+    body.set('people[0][document_type]', form.elements.document_type.value.trim());
+    body.set('people[0][document_number]', form.elements.document_number.value.trim());
+    body.set('people[0][company]', form.elements.company.value.trim());
+    Array.from(form.elements.attachments.files).forEach((file) => body.append('attachments[]', file));
+
+    await api('/api/v1/access-requests', {
+      method: 'POST',
+      data: body,
+      processData: false,
+      contentType: false,
+    });
+
+    form.reset();
+    showMessage('Solicitud enviada a aprobación.');
+    await loadRequests();
+  } catch (error) {
+    showMessage(errorMessage(error), 'error');
+  } finally {
+    $button.prop('disabled', false).html('Enviar para aprobación <span aria-hidden="true">→</span>');
+  }
 }
 
-document.querySelector('#request-form')?.addEventListener('submit',submitRequest);
-document.querySelector('#refresh')?.addEventListener('click',loadRequests);
-if(document.querySelector('#request-list')){loadSites();loadRequests();}
+$(() => {
+  $('#request-form').on('submit', submitRequest);
+  $('#refresh').on('click', loadRequests);
+
+  if ($('#request-list').length) {
+    loadSites();
+    loadRequests();
+  }
+});

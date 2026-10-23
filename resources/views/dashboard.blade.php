@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Panel · {{ config('app.name') }}</title>
-    <link rel="stylesheet" href="/css/app.css">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 </head>
 <body>
     <header class="topbar">
@@ -57,6 +57,7 @@
         </section>
         <footer class="page-footer">Las decisiones quedan registradas para consulta y auditoría.</footer>
     </main>
-    <script src="/js/app.js" defer></script>
+    <script src="{{ asset('js/jquery-4.0.0.min.js') }}" defer></script>
+    <script src="{{ asset('js/app.js') }}" defer></script>
 </body>
 </html>

@@ -8,11 +8,14 @@ use App\Models\Site;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(PlatformAdminSeeder::class);
+
         // Demo identity creation is deliberately restricted to local development.
         if (! app()->environment('local')) {
             return;
@@ -22,6 +25,15 @@ class DatabaseSeeder extends Seeder
         $password = env('DEMO_ADMIN_PASSWORD');
         $approverEmail = env('DEMO_APPROVER_EMAIL');
         $approverPassword = env('DEMO_APPROVER_PASSWORD');
+
+        $demoEmails = array_values(array_filter([$email, $approverEmail], fn ($value) => is_string($value) && trim($value) !== ''));
+        $normalizedDemoEmails = array_map(fn (string $value) => strtolower(trim($value)), $demoEmails);
+        $platformAdminEmail = strtolower((string) config('initial-admin.email'));
+
+        if (count($normalizedDemoEmails) !== count(array_unique($normalizedDemoEmails))
+            || in_array($platformAdminEmail, $normalizedDemoEmails, true)) {
+            throw new RuntimeException('Las cuentas demo deben usar correos distintos entre sí y del administrador de plataforma.');
+        }
 
         if (! $email || ! $password) {
             $this->command?->warn('Set DEMO_ADMIN_EMAIL and DEMO_ADMIN_PASSWORD in .env to seed the local demo account.');
