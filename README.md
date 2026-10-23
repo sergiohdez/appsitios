@@ -1,8 +1,8 @@
-# AppSitios
+# AccesoSitios
 
 ## Qué es la aplicación
 
-AppSitios es una aplicación web SaaS para gestionar solicitudes de ingreso a sitios físicos con acceso restringido. Cada cliente trabaja en un espacio separado y paga una tarifa mensual según la cantidad de usuarios internos activos.
+AccesoSitios es una aplicación web SaaS para gestionar solicitudes de ingreso a sitios físicos con acceso restringido. Cada cliente trabaja en un espacio separado y paga una tarifa mensual según la cantidad de usuarios internos activos.
 
 El proyecto incluye autenticación, espacios de cliente aislados, solicitudes, aprobaciones, adjuntos privados, una consola de administración con alta, búsqueda, consulta, edición y suspensión de clientes, y autenticación multifactor obligatoria para el administrador. La facturación y el cobro automático aún requieren integrar un proveedor y definir las reglas comerciales. Antes de operar con datos sensibles en producción, configura y revisa el entorno de despliegue.
 
@@ -91,5 +91,7 @@ Para ejecutar las pruebas automatizadas del proyecto:
 ```sh
 php artisan test
 ```
+
+Para configurar IntelliJ IDEA o PhpStorm, incluyendo Run/Debug para `php artisan serve`, consulta [Configuración de PhpStorm](docs/configuracion-phpstorm.md).
 
 Antes de exponer una instalación en Internet, configura HTTPS, `APP_DEBUG=false`, copias de seguridad, almacenamiento privado para adjuntos, correo saliente y monitoreo. La configuración de desarrollo anterior no debe reutilizarse como configuración de producción.

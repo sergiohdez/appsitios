@@ -34,9 +34,12 @@ class PlatformAdminMfaController extends Controller
             ]);
         }
 
+        $provisioningUri = $mfa->provisioningUri($account->user->email, $secret);
+
         return response()->view('platform.mfa-setup', [
             'secret' => $secret,
-            'provisioningUri' => $mfa->provisioningUri($account->user->email, $secret),
+            'provisioningUri' => $provisioningUri,
+            'qrCodeDataUri' => $mfa->provisioningQrDataUri($provisioningUri),
         ])->header('Cache-Control', 'no-store, private');
     }
 

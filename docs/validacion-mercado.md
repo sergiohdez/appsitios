@@ -4,7 +4,7 @@
 
 ## Productos cercanos
 
-| Producto | Enfoque que declara públicamente | Implicación para Acceso Claro |
+| Producto | Enfoque que declara públicamente | Implicación para AccesoSitios |
 |---|---|---|
 | [Delot / AE Colombia](https://aecolombia.com/control-de-acceso/) | Control de personal, contratistas y visitantes en operación, permisos/documentos, trazabilidad en tiempo real y app para validación en sitio. Declara operar en Colombia. | Competidor local directo en control de terceros; competir por facilidad de configuración, onboarding y licenciamiento simple. |
 | [NAVA](https://navapro.com.co/soluciones/) | Registro de visitantes por enlace/QR, carga de requisitos, preaprobación y registro de entrada/salida. | La solicitud autónoma y el QR ya son patrones conocidos en Colombia. |

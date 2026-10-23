@@ -9,7 +9,7 @@
 </head>
 <body>
     <header class="topbar">
-        <a class="brand" href="{{ route('platform.dashboard') }}">Acceso<span>Claro</span></a>
+        <a class="brand" href="{{ route('platform.dashboard') }}">Acceso<span>Sitios</span></a>
         <nav class="platform-nav" aria-label="Administración">
             <a href="{{ route('platform.dashboard') }}">Resumen</a>
             <a href="{{ route('platform.organizations.index') }}">Clientes</a>
@@ -27,7 +27,7 @@
             <div class="notice error" role="alert">{{ $errors->first() }}</div>
         @endif
         @yield('content')
-        <footer class="page-footer">AppSitios · Administración protegida y auditada</footer>
+        <footer class="page-footer">AccesoSitios · Administración protegida y auditada</footer>
     </main>
 </body>
 </html>

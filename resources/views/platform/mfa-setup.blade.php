@@ -10,13 +10,25 @@
     <section class="panel mfa-panel">
         <ol class="instruction-list">
             <li>Abre una aplicación compatible con TOTP, como Microsoft Authenticator, Google Authenticator, 1Password o FreeOTP.</li>
-            <li>Agrega una cuenta usando la clave de configuración que aparece abajo. El tipo es basado en tiempo (TOTP), con seis dígitos y período de 30 segundos.</li>
+            <li>Escanea el código QR para agregar la cuenta. El tipo es basado en tiempo (TOTP), con seis dígitos y período de 30 segundos.</li>
             <li>Escribe el código actual para confirmar que la configuración quedó correcta.</li>
         </ol>
-        <label class="secret-label">Clave de configuración (se muestra una sola vez)
-            <input class="secret-input" type="text" value="{{ $secret }}" readonly autocomplete="off" spellcheck="false">
-        </label>
-        <details class="uri-details"><summary>URI de aprovisionamiento manual</summary><code>{{ $provisioningUri }}</code></details>
+        <div class="mfa-setup-grid">
+            <div class="mfa-qr-column">
+                <div class="mfa-qr-card">
+                    <img class="mfa-qr-code" src="{{ $qrCodeDataUri }}" alt="Código QR para configurar el autenticador TOTP">
+                </div>
+                <p class="muted mfa-qr-help">El código QR es temporal y vence en 10 minutos.</p>
+            </div>
+            <details class="mfa-manual">
+                <summary>¿No puedes escanearlo? Configuración manual</summary>
+                <p class="muted">En el autenticador, agrega una cuenta con la siguiente clave. Guárdala de forma segura; se muestra solo durante esta configuración.</p>
+                <label class="secret-label">Clave de configuración
+                    <input class="secret-input" type="text" value="{{ $secret }}" readonly autocomplete="off" spellcheck="false">
+                </label>
+                <details class="uri-details"><summary>Mostrar URI de aprovisionamiento</summary><code>{{ $provisioningUri }}</code></details>
+            </details>
+        </div>
         <form method="post" action="{{ route('platform.mfa.setup.store') }}" class="stack mfa-form">
             @csrf
             <label>Código de 6 dígitos

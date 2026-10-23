@@ -4,6 +4,11 @@ namespace App\Services;
 
 use App\Models\PlatformAdminAccount;
 use App\Models\PlatformAdminRecoveryCode;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Support\Facades\Hash;
 use PragmaRX\Google2FA\Google2FA;
 
@@ -29,6 +34,20 @@ class PlatformAdminMfaService
 
         return 'otpauth://totp/'.$label.'?secret='.$secret
             .'&issuer='.rawurlencode($issuer).'&algorithm=SHA1&digits=6&period=30';
+    }
+
+    public function provisioningQrDataUri(string $provisioningUri): string
+    {
+        return Builder::create()
+            ->writer(new SvgWriter())
+            ->data($provisioningUri)
+            ->encoding(new Encoding('UTF-8'))
+            ->errorCorrectionLevel(ErrorCorrectionLevel::Medium)
+            ->size(260)
+            ->margin(12)
+            ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
+            ->build()
+            ->getDataUri();
     }
 
     public function verifyAndAdvance(PlatformAdminAccount $account, string $code): bool

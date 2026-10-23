@@ -31,7 +31,11 @@ class PlatformAdminMfaTest extends TestCase
         $this->get(route('platform.dashboard'))
             ->assertRedirect(route('platform.mfa.setup'));
 
-        $setupPage = $this->get(route('platform.mfa.setup'))->assertOk();
+        $setupPage = $this->get(route('platform.mfa.setup'))
+            ->assertOk()
+            ->assertSee('<img class="mfa-qr-code"', false)
+            ->assertSee('data:image/svg+xml;base64,', false)
+            ->assertSee('<details class="mfa-manual">', false);
         $secret = session('platform_admin.mfa_setup_secret');
         self::assertIsString($secret);
 

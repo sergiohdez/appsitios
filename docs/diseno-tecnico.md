@@ -6,7 +6,7 @@ La primera entrega implementa un monolito modular Laravel con autenticación web
 
 La interfaz usa Blade, CSS y jQuery 4.0.0 en una copia estática local versionada en `public/js`; el MVP no requiere Node, npm, CDN ni un proceso de compilación frontend.
 
-Quedan para iteraciones siguientes: creación/invitación de usuarios y asignación de permisos por el gestor; formularios configurables visualmente; consola del único administrador de plataforma; segundo factor y flujo completo de recuperación; facturación electrónica/impuestos; notificaciones por correo; aprobación en varios pasos; QR y check-in/out; exportación; integraciones de control físico.
+Quedan para iteraciones siguientes: invitación y recuperación de acceso de usuarios de cliente; formularios configurables visualmente; facturación electrónica/impuestos; notificaciones por correo; aprobación en varios pasos; QR para visitantes y check-in/out; exportación; integraciones de control físico.
 
 ## Contextos y autorización
 
@@ -33,13 +33,13 @@ Una decisión bloquea la fila de solicitud dentro de una transacción, comprueba
 
 ## Seguridad y privacidad que debe acompañar el producto
 
-- Proteger todo endpoint con sesión Sanctum/CSRF para la SPA propia; habilitar tokens personales con abilities solo si una integración externa lo necesita. Usar HTTPS, expiración corta de sesión, regenerar la sesión al iniciar y throttling. MFA no está implementado; debe exigirse antes de producción para la cuenta de plataforma.
+- Proteger todo endpoint con sesión Sanctum/CSRF para la SPA propia; habilitar tokens personales con abilities solo si una integración externa lo necesita. Usar HTTPS, expiración corta de sesión, regenerar la sesión al iniciar y throttling. La cuenta de plataforma exige MFA TOTP con códigos de recuperación de un solo uso.
 - Operar con cuentas de base de datos de mínimo privilegio; separar credenciales de migración y ejecución si la plataforma de hosting lo permite.
 - Adjuntos solo en almacenamiento no público, MIME verificado por contenido, lista de tipos permitidos, límite de 10 MB/archivo, nombre generado, autorización al descargar y análisis antimalware antes de producción.
 - No registrar contraseñas, tokens, números de documento, archivos, formularios completos ni comentarios sensibles. Definir TTL por clase de dato, eliminación verificable, exportación y atención de solicitudes del titular.
 - Cifrar backups y secretos fuera del repositorio; rotar claves con procedimiento; establecer RPO/RTO, alarmas y restauraciones periódicas.
 - Para operación en Colombia, revisar las obligaciones de responsable/encargado, avisos/autorizaciones, finalidad, retención, consultas/reclamos, transferencias y acuerdos con clientes bajo Ley 1581 y sus normas. La plataforma puede actuar como encargado frente a datos que el cliente administra; la asignación exacta depende del servicio y contrato y requiere revisión legal.
-- La tabla de códigos de recuperación solo define el soporte de datos: falta implementar generación, hash, vencimiento, invalidación, notificación y auditoría de un flujo con códigos offline. La recuperación actual requiere acceso de operador al servidor y no crea una segunda cuenta administradora.
+- Los códigos de recuperación MFA se muestran una sola vez, se guardan hasheados y se invalidan al usarse o al restablecer MFA. La recuperación administrativa requiere acceso autorizado al servidor y no crea una segunda cuenta administradora.
 
 ## TDD y pruebas
 
@@ -66,7 +66,7 @@ Crear flujo de invitación por correo con token aleatorio de un solo uso guardan
 
 ### Iteración 3: consola y recuperación
 
-Consola aislada del administrador único; MFA; avisos de inicio de sesión; códigos de recuperación hasheados con vencimiento/uso único y procedimiento offline. Cada vista de datos entre clientes requiere motivo y auditoría.
+La consola aislada del administrador único, MFA y códigos de recuperación de un solo uso ya están implementados. Quedan por añadir avisos de inicio de sesión y completar el procedimiento operativo de recuperación offline. Cada vista de datos entre clientes requiere motivo y auditoría.
 
 ### Iteración 4: cobro y operación
 
