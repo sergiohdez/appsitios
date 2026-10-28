@@ -6,7 +6,7 @@ La primera entrega implementa un monolito modular Laravel con autenticación web
 
 La interfaz usa Blade, CSS y jQuery 4.0.0 en una copia estática local versionada en `public/js`; el MVP no requiere Node, npm, CDN ni un proceso de compilación frontend.
 
-Quedan para iteraciones siguientes: formularios configurables visualmente; facturación electrónica/impuestos y cobro automático; notificaciones por correo sobre solicitudes; aprobación en varios pasos; QR para visitantes y check-in/out; exportación; integraciones de control físico.
+Quedan para iteraciones siguientes: facturación electrónica/impuestos y cobro automático; notificaciones por correo sobre solicitudes; aprobación en varios pasos; QR para visitantes y check-in/out; exportación; integraciones de control físico.
 
 ## Contextos y autorización
 
@@ -22,14 +22,17 @@ Si el producto luego permite que una identidad pertenezca a varios clientes, agr
 
 - `organizations`: razón social, identificación tributaria, correo de facturación, contacto, zona horaria, idioma y configuración de marca.
 - `users` / `memberships` / `client_admin_accounts`: identidad global, perfil único por cliente y cuenta única de administrador del cliente; email único global.
-- `sites`: nombre, código, ubicación, zona horaria y esquema de campos futuros.
-- `access_requests`: cliente, sitio, solicitante, motivo, intervalo solicitado, estado y datos adicionales; los estados iniciales son pending, approved, rejected y cancelled.
+- `sites`: nombre, código, ubicación, zona horaria y el último esquema de solicitud publicado.
+- `site_form_versions`: versiones inmutables del esquema de cada sitio, con los tipos permitidos texto, texto largo, fecha, selección y archivo. El administrador del cliente las edita desde el formulario de sitio; cada campo puede llevar etiqueta, opciones y obligatoriedad. No hay un límite de cantidad definido por la aplicación.
+- `access_requests`: cliente, sitio, solicitante, motivo, intervalo solicitado, estado, valores adicionales y la versión exacta del formulario usada; los estados iniciales son pending, approved, rejected y cancelled.
 - `access_people`: personas incluidas; número de documento se cifra mediante cast de Laravel y columna `TEXT`.
-- `access_request_attachments`: metadatos y ruta privada; descarga exige autorización del registro padre.
+- `access_request_attachments`: metadatos y ruta privada; descarga exige autorización del registro padre. Los archivos de campos configurables guardan además la clave del campo que los produjo.
 - `audit_events`: cambios relevantes sin copiar información personal a metadata.
 - `billing_periods`: snapshot de puestos facturables, tarifa en unidades menores, total, moneda y estado.
 
 La propiedad `organizations.brand_config.color` permite personalizar el color de acento del panel del cliente. La vista acepta solo colores CSS de texto simple (palabras alfabéticas o hexadecimales) antes de insertarlos en una variable CSS; así evita que el JSON se convierta en CSS arbitrario. El ejemplo `{"color":"red"}` aplica rojo a los acentos y botones del área `/client`; la plataforma y la pantalla de acceso usan el tema general. El locale disponible es `es`; la zona horaria se escoge desde `DateTimeZone::listIdentifiers()` y se valida de nuevo en el servidor.
+
+Cada formulario configurable pertenece a un sitio y suma campos al formulario base, que siempre conserva sitio, motivo, fechas, adjuntos comunes y al menos una persona con nombre. El administrador agrega campos desde **Sitios → Editar → Campos adicionales**; las listas usan una opción por línea y los archivos aceptan PDF, JPG o PNG de hasta 10 MB. Al publicar un cambio se crea una nueva versión, sin modificar las anteriores. Cada solicitud conserva la referencia a la versión que recibió el solicitante, por lo que las etiquetas y reglas históricas se pueden consultar aunque el formulario cambie después. Las entradas se validan contra esa versión en el servidor y se rechazan claves desconocidas; los archivos personalizados quedan vinculados a su campo y almacenados en el disco privado.
 
 La edición de sitio mantiene tenant y código único. Desactivar un sitio impide crear nuevas solicitudes desde las consultas de sitios activos. La eliminación física se bloquea cuando hay un aprobador asignado o cualquier solicitud histórica; las llaves foráneas usan `RESTRICT` para impedir que una eliminación accidental borre esas relaciones. La baja de usuario exige que no haya solicitudes pendientes creadas por la persona ni solicitudes pendientes en sitios que tenga asignados para aprobar. Luego se desactiva y se marca con `deleted_at`, se quita su asignación de aprobaciones y se retienen solicitudes y auditoría.
 

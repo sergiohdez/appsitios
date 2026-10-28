@@ -28,6 +28,7 @@
                     <label>Sitio
                         <select name="site_id" id="site_id" required><option value="">Cargando sitios…</option></select>
                     </label>
+                    <input name="form_version_id" id="form_version_id" type="hidden">
                     <label>Motivo de ingreso
                         <textarea name="purpose" rows="3" maxlength="1000" placeholder="Describe la actividad que se realizará" required></textarea>
                     </label>
@@ -35,15 +36,20 @@
                         <label>Desde<input name="requested_from" type="datetime-local" required></label>
                         <label>Hasta<input name="requested_until" type="datetime-local" required></label>
                     </div>
-                    <div class="person-card">
-                        <p class="field-title">Persona que ingresará</p>
-                        <label>Nombre completo<input name="person_name" maxlength="180" autocomplete="off" required></label>
-                        <div class="two-columns">
-                            <label>Tipo de documento<input name="document_type" maxlength="40" placeholder="CC, pasaporte…"></label>
-                            <label>Número<input name="document_number" maxlength="80"></label>
-                        </div>
-                        <label>Empresa<input name="company" maxlength="180"></label>
+                    <div id="people-list" class="people-list">
+                        <fieldset class="person-card" data-person>
+                            <legend class="field-title">Persona que ingresará</legend>
+                            <label>Nombre completo<input name="people[0][full_name]" maxlength="180" autocomplete="off" required></label>
+                            <div class="two-columns">
+                                <label>Tipo de documento<input name="people[0][document_type]" maxlength="40" placeholder="CC, pasaporte…"></label>
+                                <label>Número<input name="people[0][document_number]" maxlength="80"></label>
+                            </div>
+                            <label>Empresa<input name="people[0][company]" maxlength="180"></label>
+                            <button class="button quiet remove-person" type="button" hidden>Quitar persona</button>
+                        </fieldset>
                     </div>
+                    <button class="button quiet add-person" id="add-person" type="button">Agregar otra persona</button>
+                    <div id="custom-fields" class="custom-request-fields" aria-live="polite"></div>
                     <label class="file-picker">Adjuntos (PDF, JPG o PNG; hasta 10 MB por archivo)
                         <input name="attachments" type="file" accept=".pdf,.jpg,.jpeg,.png" multiple>
                     </label>

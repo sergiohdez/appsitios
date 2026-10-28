@@ -10,7 +10,7 @@ class AccessRequestAttachment extends Model
 {
     use HasUlids;
 
-    protected $fillable = ['storage_path', 'original_name', 'mime_type', 'size_bytes', 'uploaded_by'];
+    protected $fillable = ['storage_path', 'original_name', 'mime_type', 'size_bytes', 'uploaded_by', 'form_field_key'];
 
     public function accessRequest(): BelongsTo { return $this->belongsTo(AccessRequest::class); }
 }

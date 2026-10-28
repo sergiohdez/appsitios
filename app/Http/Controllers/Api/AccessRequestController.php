@@ -27,7 +27,12 @@ class AccessRequestController extends Controller
 
         abort_unless($membership->canRequest() || $membership->canApprove(), 403);
 
-        $query = $tenant->accessRequests()->with(['site:id,name', 'people:id,access_request_id,full_name,company']);
+        $query = $tenant->accessRequests()->with([
+            'site:id,name',
+            'people:id,access_request_id,full_name,company',
+            'formVersion:id,version,schema',
+            'attachments:id,access_request_id,original_name,form_field_key',
+        ]);
 
         if (! $membership->canManage()) {
             $query->where(function (Builder $scope) use ($membership, $user): void {
@@ -59,14 +64,46 @@ class AccessRequestController extends Controller
 
         try {
             $accessRequest = DB::transaction(function () use ($request, $tenant, $data, &$storedPaths): AccessRequest {
+                $site = $tenant->sites()->whereKey($data['site_id'])->lockForUpdate()->firstOrFail();
+                $formVersion = isset($data['form_version_id'])
+                    ? $site->formVersions()->whereKey($data['form_version_id'])->firstOrFail()
+                    : $site->currentFormVersion()->first();
+
+                if (isset($data['form_version_id']) && $site->currentFormVersion()->value('id') !== $data['form_version_id']) {
+                    throw ValidationException::withMessages([
+                        'form_version_id' => 'El formulario de este sitio se actualizó. Recarga la página antes de enviar la solicitud.',
+                    ]);
+                }
+
+                if (! $formVersion) {
+                    $schema = is_array($site->form_schema) && is_array($site->form_schema['fields'] ?? null)
+                        ? ['fields' => array_values($site->form_schema['fields'])]
+                        : ['fields' => []];
+                    $formVersion = $site->formVersions()->create([
+                        'organization_id' => $tenant->id,
+                        'version' => 1,
+                        'schema' => $schema,
+                        'published_by' => null,
+                        'published_at' => now(),
+                    ]);
+                }
+
+                $formData = $data['form_data'] ?? [];
+                $customFiles = $request->file('form_data', []) ?? [];
+
+                foreach (array_keys($customFiles) as $fieldKey) {
+                    unset($formData[$fieldKey]);
+                }
+
                 $accessRequest = $tenant->accessRequests()->create([
                     'site_id' => $data['site_id'],
+                    'form_version_id' => $formVersion->id,
                     'requester_id' => $request->user()->id,
                     'status' => AccessRequestStatus::PENDING,
                     'purpose' => $data['purpose'],
                     'requested_from' => $data['requested_from'],
                     'requested_until' => $data['requested_until'],
-                    'form_data' => $data['form_data'] ?? [],
+                    'form_data' => $formData,
                 ]);
 
                 foreach ($data['people'] as $person) {
@@ -82,6 +119,19 @@ class AccessRequestController extends Controller
                         'mime_type' => $file->getMimeType() ?: 'application/octet-stream',
                         'size_bytes' => $file->getSize(),
                         'uploaded_by' => $request->user()->id,
+                    ]);
+                }
+
+                foreach ($customFiles as $fieldKey => $file) {
+                    $path = $file->store("tenants/{$tenant->id}/requests/{$accessRequest->id}", 'private');
+                    $storedPaths[] = $path;
+                    $accessRequest->attachments()->create([
+                        'storage_path' => $path,
+                        'original_name' => mb_substr($file->getClientOriginalName(), 0, 255),
+                        'mime_type' => $file->getMimeType() ?: 'application/octet-stream',
+                        'size_bytes' => $file->getSize(),
+                        'uploaded_by' => $request->user()->id,
+                        'form_field_key' => $fieldKey,
                     ]);
                 }
 
@@ -104,13 +154,13 @@ class AccessRequestController extends Controller
             throw $exception;
         }
 
-        return response()->json(['data' => $accessRequest->load(['site:id,name', 'people', 'attachments'])], 201);
+        return response()->json(['data' => $accessRequest->load(['site:id,name', 'people', 'attachments', 'formVersion:id,version,schema'])], 201);
     }
 
     public function show(Request $request, string $requestId): JsonResponse
     {
         $accessRequest = $request->attributes->get('tenant')->accessRequests()
-            ->with(['site:id,name', 'people', 'attachments'])
+            ->with(['site:id,name', 'people', 'attachments', 'formVersion:id,version,schema'])
             ->findOrFail($requestId);
 
         Gate::authorize('view', $accessRequest);

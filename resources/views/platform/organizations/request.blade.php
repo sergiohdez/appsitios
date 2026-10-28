@@ -9,6 +9,22 @@
         <a class="button quiet" href="{{ route('platform.organizations.show', $organization) }}">Volver al cliente</a>
     </section>
 
+    @if ($accessRequest->formVersion?->schema['fields'] ?? [])
+        <section class="panel section-panel">
+            <div class="panel-heading"><div><p class="eyebrow">FORMULARIO DEL SITIO · VERSIÓN {{ $accessRequest->formVersion->version }}</p><h2>Información adicional</h2></div></div>
+            <dl class="detail-grid">
+                @foreach ($accessRequest->formVersion->schema['fields'] as $field)
+                    @php
+                        $value = ($field['type'] ?? null) === 'file'
+                            ? $accessRequest->attachments->firstWhere('form_field_key', $field['key'] ?? null)?->original_name
+                            : data_get($accessRequest->form_data, $field['key'] ?? '');
+                    @endphp
+                    <div><dt>{{ $field['label'] ?? 'Campo' }}</dt><dd>{{ is_scalar($value) && (string) $value !== '' ? $value : '—' }}</dd></div>
+                @endforeach
+            </dl>
+        </section>
+    @endif
+
     <section class="panel section-panel">
         <div class="panel-heading"><div><p class="eyebrow">SOLICITUD</p><h2>{{ ucfirst($accessRequest->status->value) }}</h2></div></div>
         <dl class="detail-grid">
