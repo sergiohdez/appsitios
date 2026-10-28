@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Site extends Model
 {
@@ -21,4 +22,8 @@ class Site extends Model
 
     public function organization(): BelongsTo { return $this->belongsTo(Organization::class); }
     public function accessRequests(): HasMany { return $this->hasMany(AccessRequest::class); }
+    public function approvers(): BelongsToMany
+    {
+        return $this->belongsToMany(Membership::class, 'site_approvers', 'site_id', 'membership_id')->withTimestamps();
+    }
 }

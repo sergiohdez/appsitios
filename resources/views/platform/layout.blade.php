@@ -23,6 +23,9 @@
         @if (session('status'))
             <div class="notice success" role="status">{{ session('status') }}</div>
         @endif
+        @if (session('warning'))
+            <div class="notice error" role="alert">{{ session('warning') }}</div>
+        @endif
         @if ($errors->any())
             <div class="notice error" role="alert">{{ $errors->first() }}</div>
         @endif

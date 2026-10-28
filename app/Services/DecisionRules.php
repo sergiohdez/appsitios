@@ -12,7 +12,7 @@ class DecisionRules
     {
         return $request->status === AccessRequestStatus::PENDING
             && $membership->is_active
-            && $membership->can_approve
+            && $membership->canApprove()
             && $membership->organization_id === $request->organization_id
             && $assignedToSite
             && $request->requester_id !== $membership->user_id;

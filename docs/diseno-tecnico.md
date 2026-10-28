@@ -6,13 +6,13 @@ La primera entrega implementa un monolito modular Laravel con autenticación web
 
 La interfaz usa Blade, CSS y jQuery 4.0.0 en una copia estática local versionada en `public/js`; el MVP no requiere Node, npm, CDN ni un proceso de compilación frontend.
 
-Quedan para iteraciones siguientes: invitación y recuperación de acceso de usuarios de cliente; formularios configurables visualmente; facturación electrónica/impuestos; notificaciones por correo; aprobación en varios pasos; QR para visitantes y check-in/out; exportación; integraciones de control físico.
+Quedan para iteraciones siguientes: recuperación de acceso iniciada por usuarios; formularios configurables visualmente; facturación electrónica/impuestos y cobro automático; notificaciones por correo sobre solicitudes; aprobación en varios pasos; QR para visitantes y check-in/out; exportación; integraciones de control físico.
 
 ## Contextos y autorización
 
-1. **Plataforma:** `platform_admin_accounts` reserva una sola fila administradora usando la clave fija `singleton_id=1`. `PlatformAdminSeeder` aprovisiona esa cuenta a partir de configuración de entorno; `/platform` muestra un resumen general y el comando `platform-admin:reset-password` permite recuperación desde el servidor. La consola completa queda pendiente. Toda lectura detallada entre clientes debe registrar actor, motivo, cliente consultado y fecha. El administrador no se agrega como gestor de ningún cliente.
-2. **Cliente:** `organizations` representa clientes. `memberships` relaciona usuarios y clientes y guarda capacidades independientes `can_manage`, `can_approve`, `can_request`; así una persona puede tener más de una capacidad sin duplicar su cuenta.
-3. **Sitio y aprobación:** cada sitio tiene `site_approvers`. Una solicitud se lista en la bandeja de aprobación solo para aprobadores asignados a ese sitio. Un aprobador también puede solicitar; las políticas y el servicio de decisión rechazan siempre su propia solicitud.
+1. **Plataforma:** `platform_admin_accounts` reserva una sola fila administradora usando la clave fija `singleton_id=1`. `PlatformAdminSeeder` aprovisiona esa cuenta a partir de configuración de entorno; `/platform` permite gestionar clientes y consultar su operación, y el comando `platform-admin:reset-password` permite recuperación desde el servidor. Toda lectura detallada entre clientes debe registrar actor, cliente consultado y fecha. El administrador de plataforma no se agrega como miembro de ningún cliente.
+2. **Cliente:** `organizations` representa clientes. `memberships` relaciona usuarios y clientes y almacena un solo `role`: `client_admin`, `approver` o `requester`. `client_admin_accounts` tiene una fila por organización para garantizar un administrador de cliente como máximo. La creación de cliente aprovisiona esa cuenta dentro de la misma transacción. `memberships.deleted_at` conserva la referencia histórica cuando se da de baja un usuario.
+3. **Sitio y aprobación:** cada sitio tiene `site_approvers`. El administrador del cliente gestiona usuarios y sitios desde `/client`. Los usuarios ordinarios tienen perfil único de aprobador o solicitante. Un aprobador también puede solicitar; las políticas y el servicio de decisión rechazan siempre su propia solicitud.
 4. **Contexto de tenant:** el middleware lo deriva de la membresía activa asociada al usuario autenticado. En el MVP se permite exactamente una membresía activa por usuario. No se confía en `tenant_id`, encabezados o parámetros enviados por el navegador.
 5. **Defensa adicional:** las tablas de sitio, solicitud y membresía incluyen tenant y usan llaves foráneas compuestas para evitar que datos de dos clientes se unan accidentalmente. Las políticas Laravel y las consultas bajo la relación del tenant protegen los endpoints; los ULID hacen menos enumerable la URL, pero no sustituyen autorización.
 
@@ -21,13 +21,17 @@ Si el producto luego permite que una identidad pertenezca a varios clientes, agr
 ## Datos y flujo
 
 - `organizations`: razón social, identificación tributaria, correo de facturación, contacto, zona horaria, idioma y configuración de marca.
-- `users` / `memberships`: identidad global y capacidades para cada cliente; email único global.
+- `users` / `memberships` / `client_admin_accounts`: identidad global, perfil único por cliente y cuenta única de administrador del cliente; email único global.
 - `sites`: nombre, código, ubicación, zona horaria y esquema de campos futuros.
 - `access_requests`: cliente, sitio, solicitante, motivo, intervalo solicitado, estado y datos adicionales; los estados iniciales son pending, approved, rejected y cancelled.
 - `access_people`: personas incluidas; número de documento se cifra mediante cast de Laravel y columna `TEXT`.
 - `access_request_attachments`: metadatos y ruta privada; descarga exige autorización del registro padre.
 - `audit_events`: cambios relevantes sin copiar información personal a metadata.
 - `billing_periods`: snapshot de puestos facturables, tarifa en unidades menores, total, moneda y estado.
+
+La propiedad `organizations.brand_config.color` permite personalizar el color de acento del panel del cliente. La vista acepta solo colores CSS de texto simple (palabras alfabéticas o hexadecimales) antes de insertarlos en una variable CSS; así evita que el JSON se convierta en CSS arbitrario. El ejemplo `{"color":"red"}` aplica rojo a los acentos y botones del área `/client`; la plataforma y la pantalla de acceso usan el tema general. El locale disponible es `es`; la zona horaria se escoge desde `DateTimeZone::listIdentifiers()` y se valida de nuevo en el servidor.
+
+La edición de sitio mantiene tenant y código único. Desactivar un sitio impide crear nuevas solicitudes desde las consultas de sitios activos. La eliminación física se bloquea cuando hay un aprobador asignado o cualquier solicitud histórica; las llaves foráneas usan `RESTRICT` para impedir que una eliminación accidental borre esas relaciones. La baja de usuario exige que no haya solicitudes pendientes creadas por la persona ni solicitudes pendientes en sitios que tenga asignados para aprobar. Luego se desactiva y se marca con `deleted_at`, se quita su asignación de aprobaciones y se retienen solicitudes y auditoría.
 
 Una decisión bloquea la fila de solicitud dentro de una transacción, comprueba estado pendiente, pertenencia a cliente, rol, asignación de sitio y diferencia entre solicitante y aprobador; luego actualiza el estado y agrega una auditoría. Evita que dos aprobaciones concurrentes se sobrescriban.
 
@@ -43,12 +47,7 @@ Una decisión bloquea la fila de solicitud dentro de una transacción, comprueba
 
 ## TDD y pruebas
 
-Escribir primero los casos de aceptación y luego el código:
-
-1. **Unit:** reglas de permisos independientes de Laravel: el solicitante no se aprueba; una membresía inactiva no actúa; rol, tenant o asignación incorrecta deniegan; decisión fuera de estado no procede.
-2. **Feature/integration:** requests HTTP con base de datos y autenticación: cliente A no enumera, consulta ni descarga archivos del cliente B; requester ve solo solicitudes propias; approver ve bandeja de sitios asignados; gestor administra dentro de su tenant; subida valida tipo/tamaño; descarga valida autorización; transición concurrente produce una sola decisión.
-3. Probar contra SQLite en cada cambio para feedback rápido y contra MariaDB en CI por compatibilidad de llaves compuestas, índices y migraciones. Añadir pruebas de recuperación y retención antes de exponer administración.
-4. Correr `php artisan test` y revisión estática (Pint + PHPStan/Larastan) en CI antes de integrar. El código de prueba inicial incluye casos de autoaprobación y aislamiento; aún no se ejecutaron en esta máquina.
+La suite cubre reglas unitarias de aprobación, aislamiento entre clientes, creación de organización y administrador inicial, invitaciones de un solo uso, validación de contraseña, alta y baja de usuarios, edición y eliminación protegida de sitios, asignación de aprobadores y denegación de permisos fuera del tenant. Ejecutar `php artisan test` para correr pruebas unitarias y de integración sobre SQLite. CI debe comprobar además MariaDB para validar migraciones e índices compuestos.
 
 ## Construcción por iteraciones en IntelliJ
 
@@ -62,7 +61,7 @@ Finalizar factories y prueba del endpoint de solicitud, publicar sitios y miembr
 
 ### Iteración 2: gestión de cliente
 
-Crear flujo de invitación por correo con token aleatorio de un solo uso guardando solo hash, caducidad y aceptación; gestor crea/inhabilita membresías, combina capacidades y asigna aprobadores por sitio. Añadir formularios con versión y validación por sitio.
+El administrador de plataforma crea el administrador único del cliente junto con la organización y envía un enlace de activación de un solo uso usando el broker de contraseñas de Laravel. El administrador del cliente crea y edita membresías de perfil único, asigna sitios a los aprobadores y registra los sitios de su organización. Los usuarios también reciben invitaciones; plataforma y cliente pueden enviar un nuevo enlace de acceso.
 
 ### Iteración 3: consola y recuperación
 

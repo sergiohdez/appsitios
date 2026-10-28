@@ -11,12 +11,8 @@ class SiteController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        abort_unless(
-            $request->attributes->get('membership')->can_request
-            || $request->attributes->get('membership')->can_approve
-            || $request->attributes->get('membership')->can_manage,
-            403
-        );
+        $membership = $request->attributes->get('membership');
+        abort_unless($membership->canRequest() || $membership->canApprove() || $membership->canManage(), 403);
 
         $sites = $request->attributes->get('tenant')->sites()
             ->where('is_active', true)
@@ -28,7 +24,7 @@ class SiteController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        abort_unless($request->attributes->get('membership')->can_manage, 403);
+        abort_unless($request->attributes->get('membership')->canManage(), 403);
 
         $data = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:180'],

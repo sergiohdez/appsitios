@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AccessPerson;
+use App\Enums\MembershipRole;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Site;
@@ -23,7 +24,7 @@ class AccessRequestCreationTest extends TestCase
         Membership::factory()->create([
             'organization_id' => $tenant->id,
             'user_id' => $requester->id,
-            'can_request' => true,
+            'role' => MembershipRole::REQUESTER,
         ]);
         $site = Site::factory()->create(['organization_id' => $tenant->id]);
 

@@ -16,9 +16,8 @@ class AccessRequestPolicy
             return false;
         }
 
-        return $membership->can_manage
-            || ($membership->can_request && $accessRequest->requester_id === $user->id)
-            || ($membership->can_approve && $membership->approvableSites()->whereKey($accessRequest->site_id)->exists());
+        return ($membership->canRequest() && $accessRequest->requester_id === $user->id)
+            || ($membership->canApprove() && $membership->approvableSites()->whereKey($accessRequest->site_id)->exists());
     }
 
     public function decide(User $user, AccessRequest $accessRequest): bool
@@ -26,7 +25,7 @@ class AccessRequestPolicy
         $membership = $user->membershipFor($accessRequest->organization_id);
 
         return $membership !== null
-            && $membership->can_approve
+            && $membership->canApprove()
             && $accessRequest->requester_id !== $user->id
             && $accessRequest->status === AccessRequestStatus::PENDING
             && $membership->approvableSites()->whereKey($accessRequest->site_id)->exists();

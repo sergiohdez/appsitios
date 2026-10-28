@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Enums\MembershipRole;
+use App\Models\ClientAdminAccount;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Site;
@@ -53,7 +55,12 @@ class DatabaseSeeder extends Seeder
 
         Membership::updateOrCreate(
             ['organization_id' => $organization->id, 'user_id' => $user->id],
-            ['can_manage' => true, 'can_approve' => true, 'can_request' => true, 'is_active' => true]
+            ['role' => MembershipRole::CLIENT_ADMIN, 'is_active' => true]
+        );
+        $adminMembership = Membership::query()->where('organization_id', $organization->id)->where('user_id', $user->id)->firstOrFail();
+        ClientAdminAccount::updateOrCreate(
+            ['organization_id' => $organization->id],
+            ['membership_id' => $adminMembership->id]
         );
 
         $site = Site::firstOrCreate(
@@ -68,7 +75,7 @@ class DatabaseSeeder extends Seeder
             );
             $approverMembership = Membership::updateOrCreate(
                 ['organization_id' => $organization->id, 'user_id' => $approver->id],
-                ['can_manage' => false, 'can_approve' => true, 'can_request' => true, 'is_active' => true]
+                ['role' => MembershipRole::APPROVER, 'is_active' => true]
             );
             $approverMembership->approvableSites()->sync([$site->id => ['organization_id' => $organization->id]]);
         }

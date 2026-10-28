@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\AccessRequestStatus;
+use App\Enums\MembershipRole;
 use App\Models\AccessRequest;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -21,12 +22,12 @@ class AccessRequestTenantIsolationTest extends TestCase
         $tenantA = Organization::factory()->create();
         $tenantB = Organization::factory()->create();
         $requester = User::factory()->create();
-        Membership::factory()->create(['organization_id' => $tenantA->id, 'user_id' => $requester->id, 'can_request' => true]);
+        Membership::factory()->create(['organization_id' => $tenantA->id, 'user_id' => $requester->id, 'role' => MembershipRole::REQUESTER]);
 
         $siteA = Site::factory()->create(['organization_id' => $tenantA->id]);
         $siteB = Site::factory()->create(['organization_id' => $tenantB->id]);
         $otherRequester = User::factory()->create();
-        Membership::factory()->create(['organization_id' => $tenantB->id, 'user_id' => $otherRequester->id, 'can_request' => true]);
+        Membership::factory()->create(['organization_id' => $tenantB->id, 'user_id' => $otherRequester->id, 'role' => MembershipRole::REQUESTER]);
         $own = AccessRequest::factory()->create(['organization_id' => $tenantA->id, 'site_id' => $siteA->id, 'requester_id' => $requester->id]);
         AccessRequest::factory()->create(['organization_id' => $tenantB->id, 'site_id' => $siteB->id, 'requester_id' => $otherRequester->id]);
 
@@ -45,8 +46,7 @@ class AccessRequestTenantIsolationTest extends TestCase
         $membership = Membership::factory()->create([
             'organization_id' => $tenant->id,
             'user_id' => $requester->id,
-            'can_approve' => true,
-            'can_request' => true,
+            'role' => MembershipRole::APPROVER,
         ]);
         $site = Site::factory()->create(['organization_id' => $tenant->id]);
         $membership->approvableSites()->attach($site->id, ['organization_id' => $tenant->id]);

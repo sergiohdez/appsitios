@@ -36,7 +36,7 @@ No fijar tarifas todavía. Probar un paquete mensual por cliente más puestos in
 2. **Usuarios externos:** personas incluidas en solicitudes no cuentan como puestos; no necesitan cuenta durante el primer MVP.
 3. **Prorrateo y bajas:** elegir si una cuenta activa un solo día se cobra por mes completo, por promedio diario o por corte de fin de mes. El corte mensual es más sencillo; el promedio es más proporcional.
 4. **Factura:** guardar un snapshot inmutable del número de puestos, tarifa, moneda, impuestos aplicables, periodo y ajuste manual, y emitir una sola factura por cliente.
-5. **Excedentes:** avisar al gestor antes de crear puestos que excedan el plan; evitar suspender solicitudes de seguridad sin periodo de gracia.
+5. **Excedentes:** avisar al administrador del cliente antes de crear puestos que excedan el plan; evitar suspender solicitudes de seguridad sin periodo de gracia.
 
 El código inicial guarda periodos de cobro y snapshots por cliente, pero no calcula impuestos, no genera factura fiscal ni integra un proveedor de pagos/facturación.
 

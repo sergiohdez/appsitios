@@ -12,5 +12,6 @@ return [
         'single' => ['driver' => 'single', 'path' => storage_path('logs/laravel.log'), 'level' => env('LOG_LEVEL', 'info'), 'replace_placeholders' => true],
         'stderr' => ['driver' => 'monolog', 'level' => env('LOG_LEVEL', 'info'), 'handler' => StreamHandler::class, 'handler_with' => ['stream' => 'php://stderr'], 'processors' => [PsrLogMessageProcessor::class]],
         'null' => ['driver' => 'monolog', 'handler' => NullHandler::class],
+        'mail' => ['driver' => 'single', 'path' => storage_path('logs/mails.log'), 'level' => env('MAIL_LOG_LEVEL', 'debug'), 'replace_placeholders' => true],
     ],
 ];

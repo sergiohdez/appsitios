@@ -11,7 +11,7 @@ class StoreAccessRequestRequest extends FormRequest
     {
         return (bool) $this->user()?->membershipFor(
             $this->attributes->get('tenant')?->id
-        )?->can_request;
+        )?->canRequest();
     }
 
     public function rules(): array

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Organization extends Model
 {
@@ -22,6 +23,7 @@ class Organization extends Model
     }
 
     public function memberships(): HasMany { return $this->hasMany(Membership::class); }
+    public function clientAdminAccount(): HasOne { return $this->hasOne(ClientAdminAccount::class); }
     public function sites(): HasMany { return $this->hasMany(Site::class); }
     public function accessRequests(): HasMany { return $this->hasMany(AccessRequest::class); }
 }

@@ -32,18 +32,43 @@
 
     <section class="panel section-panel">
         <div class="panel-heading"><div><p class="eyebrow">ACCESO AL CLIENTE</p><h2>Usuarios</h2></div></div>
+        @if ($adminMembership)
+            <div class="detail-grid admin-account-card">
+                <div><dt>Administrador único del cliente</dt><dd>{{ $adminMembership->user->name }}</dd></div>
+                <div><dt>Correo de acceso</dt><dd>{{ $adminMembership->user->email }}</dd></div>
+                <div><dt>Invitación</dt><dd>{{ $adminMembership->user->email_verified_at ? 'Cuenta activada' : 'Pendiente de activación' }}</dd></div>
+                <div>
+                    <dt>Recuperación de acceso</dt>
+                    <dd><form method="post" action="{{ route('platform.organizations.admin-invitation', $organization) }}">
+                        @csrf
+                        <button class="button quiet" type="submit">Enviar enlace de acceso</button>
+                    </form></dd>
+                </div>
+            </div>
+        @else
+            <form method="post" action="{{ route('platform.organizations.admin.store', $organization) }}" class="stack admin-account-card">
+                @csrf
+                <p class="eyebrow">ACCESO INICIAL AL CLIENTE</p>
+                <p class="muted">Este cliente aún no tiene administrador. Crea la cuenta para habilitar la gestión de usuarios y sitios.</p>
+                <div class="form-grid">
+                    <label>Nombre del administrador
+                        <input name="initial_admin_name" value="{{ old('initial_admin_name', $organization->contact_name) }}" maxlength="255" required>
+                    </label>
+                    <label>Correo de acceso
+                        <input type="email" name="initial_admin_email" value="{{ old('initial_admin_email', $organization->contact_email) }}" maxlength="255" required>
+                    </label>
+                </div>
+                <button class="button primary" type="submit">Crear administrador y enviar invitación</button>
+            </form>
+        @endif
         <div class="table-wrap"><table class="data-table">
-            <thead><tr><th>Nombre</th><th>Correo</th><th>Funciones</th><th>Estado de cuenta</th><th>Membresía</th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Correo</th><th>Perfil</th><th>Estado de cuenta</th><th>Membresía</th></tr></thead>
             <tbody>
                 @forelse ($memberships as $membership)
                     <tr>
                         <td>{{ $membership->user->name }}</td>
                         <td>{{ $membership->user->email }}</td>
-                        <td class="role-list">
-                            @if ($membership->can_manage)<span>Gestor</span>@endif
-                            @if ($membership->can_approve)<span>Aprobador</span>@endif
-                            @if ($membership->can_request)<span>Solicitante</span>@endif
-                        </td>
+                        <td>{{ $membership->role->label() }}</td>
                         <td><span class="state-chip {{ $membership->user->is_active ? 'active' : 'inactive' }}">{{ $membership->user->is_active ? 'Activa' : 'Inactiva' }}</span></td>
                         <td>{{ $membership->is_active ? 'Activa' : 'Inactiva' }}</td>
                     </tr>

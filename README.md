@@ -4,14 +4,17 @@
 
 AccesoSitios es una aplicación web SaaS para gestionar solicitudes de ingreso a sitios físicos con acceso restringido. Cada cliente trabaja en un espacio separado y paga una tarifa mensual según la cantidad de usuarios internos activos.
 
-El proyecto incluye autenticación, espacios de cliente aislados, solicitudes, aprobaciones, adjuntos privados, una consola de administración con alta, búsqueda, consulta, edición y suspensión de clientes, y autenticación multifactor obligatoria para el administrador. La facturación y el cobro automático aún requieren integrar un proveedor y definir las reglas comerciales. Antes de operar con datos sensibles en producción, configura y revisa el entorno de despliegue.
+El proyecto incluye espacios de cliente aislados, solicitudes, aprobaciones, adjuntos privados, una consola de plataforma y un área de administración para cada cliente. La facturación y el cobro automático aún requieren integrar un proveedor y definir las reglas comerciales. Antes de operar con datos sensibles en producción, configura y revisa el entorno de despliegue.
 
 ## Cómo funciona
 
-1. Un gestor administra los usuarios y los sitios de su cliente.
-2. Un solicitante indica el sitio, el motivo y el horario de ingreso, registra a las personas que lo visitarán y adjunta los documentos requeridos.
-3. Un aprobador revisa las solicitudes que tiene asignadas y las aprueba o rechaza. Los usuarios pueden tener más de una función, pero no pueden aprobar sus propias solicitudes.
-4. Las decisiones y cambios relevantes quedan disponibles para consulta. Los datos de un cliente no se muestran a los demás.
+1. Al crear un cliente, el administrador de plataforma crea también su único administrador y le envía un enlace de un solo uso para definir la contraseña. Este administrador gestiona los usuarios y los sitios de su organización.
+2. Cada usuario del cliente tiene un solo perfil: solicitante o aprobador. Un solicitante crea solicitudes y consulta las propias. Un aprobador puede crear solicitudes y decide las solicitudes asignadas a sus sitios; nunca puede aprobar una solicitud propia.
+3. Los datos de clientes, usuarios, sitios y solicitudes quedan aislados por organización. El administrador de plataforma puede consultar la actividad de cualquier cliente.
+
+El formulario del cliente ofrece la lista de zonas horarias de PHP y actualmente permite el locale `es` (español). La configuración `brand_config` acepta un objeto JSON; por ahora usa la propiedad `color` para cambiar el color de acento del área del cliente. Se admiten nombres CSS como `red` y colores hexadecimales como `#087f83`. Ejemplo: `{"color":"red"}`. El color se aplica en el panel del cliente; el acceso y la consola de plataforma mantienen el tema general. Los valores inválidos de `color` se rechazan y las propiedades aún no soportadas no cambian la interfaz.
+
+El administrador del cliente puede editar o desactivar sitios. Solo puede eliminar un sitio si no tiene usuarios aprobadores asignados ni solicitudes asociadas; los sitios inactivos dejan de recibir nuevas solicitudes. Puede eliminar usuarios cuando no tengan solicitudes pendientes propias ni pendientes asignadas para aprobación. La baja de usuario se guarda como eliminación lógica y conserva las solicitudes, auditoría e identidad histórica.
 
 El alta inicial crea una cuenta administradora de plataforma única. En el primer inicio de sesión debe configurar una aplicación compatible con TOTP y guardar los códigos de recuperación, que se muestran una sola vez. Un operador autorizado del servidor puede restablecer la contraseña y forzar una nueva inscripción de MFA con `php artisan platform-admin:reset-password --reset-mfa`.
 
@@ -64,6 +67,8 @@ INITIAL_ADMIN_PASSWORD="USA_UNA_FRASE_SECRETA_DE_16_CARACTERES_O_MAS"
 ```
 
 Usa una dirección de correo que controles y una contraseña única de al menos 16 caracteres. No compartas ni subas el archivo `.env` al repositorio.
+
+Configura también un servicio SMTP real para las invitaciones de administradores y usuarios. En desarrollo, `MAIL_MAILER=log` escribe los mensajes en el registro de Laravel. Para producción, cambia `MAIL_MAILER=smtp` y completa `MAIL_SCHEME`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` y `MAIL_FROM_ADDRESS` con los datos de tu proveedor. Los enlaces de activación vencen en 60 minutos; desde la administración se puede enviar un nuevo enlace.
 
 ### 3. Crear las tablas y el administrador inicial
 

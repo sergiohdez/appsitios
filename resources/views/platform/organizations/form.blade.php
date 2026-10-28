@@ -23,7 +23,7 @@
                     <input name="legal_name" value="{{ old('legal_name', $organization->legal_name) }}" maxlength="255">
                 </label>
                 <label>NIT / identificación tributaria
-                    <input name="tax_id" value="{{ old('tax_id', $organization->tax_id) }}" maxlength="80">
+                    <input name="tax_id" value="{{ old('tax_id', $organization->tax_id) }}" maxlength="80" inputmode="numeric" pattern="[0-9]*" data-digits-only>
                 </label>
                 <label>Correo de facturación
                     <input type="email" name="billing_email" value="{{ old('billing_email', $organization->billing_email) }}" maxlength="255" required>
@@ -35,15 +35,34 @@
                     <input type="email" name="contact_email" value="{{ old('contact_email', $organization->contact_email) }}" maxlength="255">
                 </label>
                 <label>Zona horaria
-                    <input name="timezone" value="{{ old('timezone', $organization->timezone ?: 'America/Bogota') }}" placeholder="America/Bogota" required>
+                    <select name="timezone" required>
+                        @foreach (\DateTimeZone::listIdentifiers(\DateTimeZone::ALL) as $timezone)
+                            <option value="{{ $timezone }}" @selected(old('timezone', $organization->timezone ?: 'America/Bogota') === $timezone)>{{ $timezone }}</option>
+                        @endforeach
+                    </select>
                 </label>
                 <label>Idioma / locale
-                    <input name="locale" value="{{ old('locale', $organization->locale ?: 'es') }}" maxlength="12" required>
+                    <select name="locale" required>
+                        <option value="es" @selected(old('locale', $organization->locale ?: 'es') === 'es')>Español</option>
+                    </select>
                 </label>
                 <label class="wide">Configuración personalizada (objeto JSON)
                     <textarea name="brand_config" rows="7" spellcheck="false">{{ $brandConfig }}</textarea>
-                    <span class="muted">Ejemplo: {&quot;color&quot;:&quot;#087f83&quot;,&quot;logo_url&quot;:&quot;https://cliente.example/logo.png&quot;}</span>
+                    <span class="muted">El campo <code>color</code> cambia el color de acento del área del cliente. Admite un nombre CSS (por ejemplo, <code>red</code>) o un color hexadecimal, como {&quot;color&quot;:&quot;#087f83&quot;}.</span>
                 </label>
+                @unless ($editing)
+                    <div class="wide panel-subsection">
+                        <p class="eyebrow">ACCESO AL CLIENTE</p>
+                        <h2>Administrador inicial</h2>
+                        <p class="muted">Se creará una cuenta separada y recibirá un enlace de un solo uso para definir su contraseña.</p>
+                    </div>
+                    <label>Nombre del administrador inicial
+                        <input name="initial_admin_name" value="{{ old('initial_admin_name', $organization->contact_name) }}" maxlength="255" required>
+                    </label>
+                    <label>Correo de acceso del administrador
+                        <input type="email" name="initial_admin_email" value="{{ old('initial_admin_email', $organization->contact_email) }}" maxlength="255" required>
+                    </label>
+                @endunless
                 <label class="check-field wide">
                     <input type="hidden" name="is_active" value="0">
                     <input type="checkbox" name="is_active" value="1" @checked((bool) old('is_active', $organization->exists ? $organization->is_active : true))>
@@ -56,4 +75,6 @@
             </div>
         </form>
     </section>
+    <script src="{{ asset('js/jquery-4.0.0.min.js') }}" defer></script>
+    <script src="{{ asset('js/client.js') }}" defer></script>
 @endsection

@@ -25,17 +25,17 @@ class AccessRequestController extends Controller
         $membership = $request->attributes->get('membership');
         $user = $request->user();
 
-        abort_unless($membership->can_request || $membership->can_approve || $membership->can_manage, 403);
+        abort_unless($membership->canRequest() || $membership->canApprove(), 403);
 
         $query = $tenant->accessRequests()->with(['site:id,name', 'people:id,access_request_id,full_name,company']);
 
-        if (! $membership->can_manage) {
+        if (! $membership->canManage()) {
             $query->where(function (Builder $scope) use ($membership, $user): void {
-                if ($membership->can_request) {
+                if ($membership->canRequest()) {
                     $scope->where('requester_id', $user->id);
                 }
 
-                if ($membership->can_approve) {
+                if ($membership->canApprove()) {
                     $siteIds = $membership->approvableSites()->select('sites.id');
                     $scope->orWhere(function (Builder $pending) use ($siteIds): void {
                         $pending->where('status', AccessRequestStatus::PENDING->value)

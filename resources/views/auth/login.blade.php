@@ -13,6 +13,9 @@
         <p class="eyebrow">PORTAL DE ACCESO</p>
         <h1>Inicia sesión</h1>
         <p class="muted">Gestiona solicitudes y aprobaciones de tus sitios.</p>
+        @if (session('status'))
+            <div class="notice success" role="status">{{ session('status') }}</div>
+        @endif
         @if ($errors->any())
             <div class="notice error" role="alert">{{ $errors->first() }}</div>
         @endif

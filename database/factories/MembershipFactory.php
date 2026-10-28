@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\MembershipRole;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
@@ -17,9 +18,7 @@ class MembershipFactory extends Factory
         return [
             'organization_id' => Organization::factory(),
             'user_id' => User::factory(),
-            'can_manage' => false,
-            'can_approve' => false,
-            'can_request' => true,
+            'role' => MembershipRole::REQUESTER,
             'is_active' => true,
         ];
     }
