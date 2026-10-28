@@ -43,6 +43,7 @@ class PlatformOrganizationManagementTest extends TestCase
         $organization = Organization::query()->where('name', 'Cliente Alfa')->firstOrFail();
         self::assertSame(['color' => 'red'], $organization->brand_config);
         self::assertTrue($organization->is_active);
+        self::assertSame(['fields' => []], $organization->currentRequestFormVersion()->firstOrFail()->schema);
         $clientAdminAccount = ClientAdminAccount::query()->with('membership.user')->findOrFail($organization->id);
         self::assertSame(MembershipRole::CLIENT_ADMIN, $clientAdminAccount->membership->role);
         self::assertSame('admin@alfa.example', $clientAdminAccount->membership->user->email);

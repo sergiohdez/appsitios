@@ -62,4 +62,50 @@ class AccessRequestTenantIsolationTest extends TestCase
         $this->postJson("/api/v1/access-requests/{$accessRequest->id}/approve")
             ->assertForbidden();
     }
+
+    public function test_site_approver_can_approve_and_reject_requests_created_by_requesters(): void
+    {
+        $tenant = Organization::factory()->create();
+        $site = Site::factory()->create(['organization_id' => $tenant->id]);
+        $requester = User::factory()->create();
+        Membership::factory()->create([
+            'organization_id' => $tenant->id,
+            'user_id' => $requester->id,
+            'role' => MembershipRole::REQUESTER,
+        ]);
+        $approver = User::factory()->create();
+        $approverMembership = Membership::factory()->create([
+            'organization_id' => $tenant->id,
+            'user_id' => $approver->id,
+            'role' => MembershipRole::APPROVER,
+        ]);
+        $approverMembership->approvableSites()->attach($site->id, ['organization_id' => $tenant->id]);
+
+        $toApprove = AccessRequest::factory()->create([
+            'organization_id' => $tenant->id,
+            'site_id' => $site->id,
+            'requester_id' => $requester->id,
+            'status' => AccessRequestStatus::PENDING,
+        ]);
+        $toReject = AccessRequest::factory()->create([
+            'organization_id' => $tenant->id,
+            'site_id' => $site->id,
+            'requester_id' => $requester->id,
+            'status' => AccessRequestStatus::PENDING,
+        ]);
+
+        Sanctum::actingAs($approver);
+
+        $inbox = $this->getJson('/api/v1/access-requests')->assertOk();
+        $items = collect($inbox->json('data.data'))->keyBy('id');
+        self::assertTrue($items[$toApprove->id]['can_decide']);
+        self::assertTrue($items[$toReject->id]['can_decide']);
+
+        $this->postJson("/api/v1/access-requests/{$toApprove->id}/approve")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'approved');
+        $this->postJson("/api/v1/access-requests/{$toReject->id}/reject")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'rejected');
+    }
 }

@@ -26,4 +26,6 @@ class Organization extends Model
     public function clientAdminAccount(): HasOne { return $this->hasOne(ClientAdminAccount::class); }
     public function sites(): HasMany { return $this->hasMany(Site::class); }
     public function accessRequests(): HasMany { return $this->hasMany(AccessRequest::class); }
+    public function requestFormVersions(): HasMany { return $this->hasMany(OrganizationFormVersion::class); }
+    public function currentRequestFormVersion(): HasOne { return $this->hasOne(OrganizationFormVersion::class)->ofMany('version', 'max'); }
 }

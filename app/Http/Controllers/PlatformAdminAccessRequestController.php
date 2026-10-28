@@ -18,7 +18,7 @@ class PlatformAdminAccessRequestController extends Controller
         PlatformAdminAudit $audit
     ): Response {
         $accessRequest = $organization->accessRequests()
-            ->with(['site', 'requester', 'people', 'attachments', 'formVersion'])
+            ->with(['site', 'requester', 'people', 'attachments', 'formVersion', 'organizationFormVersion'])
             ->findOrFail($accessRequest->id);
 
         $audit->record($organization, 'platform.access_request.viewed', AccessRequest::class, $accessRequest->id);

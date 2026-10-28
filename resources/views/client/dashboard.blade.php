@@ -20,5 +20,8 @@
         <article><p class="eyebrow">OPERACIÓN</p><h2>Sitios</h2>
             <p class="muted">Registra los lugares donde se solicitará permiso de acceso.</p>
             <a class="button primary" href="{{ route('client.sites.index') }}">Gestionar sitios</a></article>
+        <article><p class="eyebrow">SOLICITUDES</p><h2>Formulario</h2>
+            <p class="muted">Configura los campos adicionales que se usarán en las solicitudes de todos tus sitios.</p>
+            <a class="button primary" href="{{ route('client.request-form.edit') }}">Configurar formulario</a></article>
     </section>
 @endsection

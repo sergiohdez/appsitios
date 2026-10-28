@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAccessRequestRequest;
 use App\Models\AccessRequest;
 use App\Models\AuditEvent;
+use App\Models\Organization;
 use App\Services\DecideAccessRequest;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -31,8 +32,12 @@ class AccessRequestController extends Controller
             'site:id,name',
             'people:id,access_request_id,full_name,company',
             'formVersion:id,version,schema',
+            'organizationFormVersion:id,version,schema',
             'attachments:id,access_request_id,original_name,form_field_key',
         ]);
+        $approvableSiteIds = $membership->canApprove()
+            ? $membership->approvableSites()->pluck('sites.id')->all()
+            : [];
 
         if (! $membership->canManage()) {
             $query->where(function (Builder $scope) use ($membership, $user): void {
@@ -50,9 +55,18 @@ class AccessRequestController extends Controller
             });
         }
 
-        return response()->json([
-            'data' => $query->latest()->paginate(25),
-        ]);
+        $requests = $query->latest()->paginate(25);
+        $requests->getCollection()->each(function (AccessRequest $accessRequest) use ($membership, $user, $approvableSiteIds): void {
+            $canDecide = $membership->is_active
+                && $membership->canApprove()
+                && $accessRequest->status === AccessRequestStatus::PENDING
+                && $accessRequest->requester_id !== $user->id
+                && in_array($accessRequest->site_id, $approvableSiteIds, true);
+
+            $accessRequest->setAttribute('can_decide', $canDecide);
+        });
+
+        return response()->json(['data' => $requests]);
     }
 
     public function store(StoreAccessRequestRequest $request): JsonResponse
@@ -64,27 +78,13 @@ class AccessRequestController extends Controller
 
         try {
             $accessRequest = DB::transaction(function () use ($request, $tenant, $data, &$storedPaths): AccessRequest {
-                $site = $tenant->sites()->whereKey($data['site_id'])->lockForUpdate()->firstOrFail();
-                $formVersion = isset($data['form_version_id'])
-                    ? $site->formVersions()->whereKey($data['form_version_id'])->firstOrFail()
-                    : $site->currentFormVersion()->first();
+                $organization = Organization::query()->whereKey($tenant->id)->lockForUpdate()->firstOrFail();
+                $site = $organization->sites()->whereKey($data['site_id'])->where('is_active', true)->lockForUpdate()->firstOrFail();
+                $formVersion = $organization->requestFormVersions()->orderByDesc('version')->first();
 
-                if (isset($data['form_version_id']) && $site->currentFormVersion()->value('id') !== $data['form_version_id']) {
+                if (isset($data['organization_form_version_id']) && $formVersion?->id !== $data['organization_form_version_id']) {
                     throw ValidationException::withMessages([
-                        'form_version_id' => 'El formulario de este sitio se actualizó. Recarga la página antes de enviar la solicitud.',
-                    ]);
-                }
-
-                if (! $formVersion) {
-                    $schema = is_array($site->form_schema) && is_array($site->form_schema['fields'] ?? null)
-                        ? ['fields' => array_values($site->form_schema['fields'])]
-                        : ['fields' => []];
-                    $formVersion = $site->formVersions()->create([
-                        'organization_id' => $tenant->id,
-                        'version' => 1,
-                        'schema' => $schema,
-                        'published_by' => null,
-                        'published_at' => now(),
+                        'organization_form_version_id' => 'El formulario del cliente se actualizó. Recarga la página antes de enviar la solicitud.',
                     ]);
                 }
 
@@ -97,7 +97,7 @@ class AccessRequestController extends Controller
 
                 $accessRequest = $tenant->accessRequests()->create([
                     'site_id' => $data['site_id'],
-                    'form_version_id' => $formVersion->id,
+                    'organization_form_version_id' => $formVersion?->id,
                     'requester_id' => $request->user()->id,
                     'status' => AccessRequestStatus::PENDING,
                     'purpose' => $data['purpose'],
@@ -154,13 +154,13 @@ class AccessRequestController extends Controller
             throw $exception;
         }
 
-        return response()->json(['data' => $accessRequest->load(['site:id,name', 'people', 'attachments', 'formVersion:id,version,schema'])], 201);
+        return response()->json(['data' => $accessRequest->load(['site:id,name', 'people', 'attachments', 'formVersion:id,version,schema', 'organizationFormVersion:id,version,schema'])], 201);
     }
 
     public function show(Request $request, string $requestId): JsonResponse
     {
         $accessRequest = $request->attributes->get('tenant')->accessRequests()
-            ->with(['site:id,name', 'people', 'attachments', 'formVersion:id,version,schema'])
+            ->with(['site:id,name', 'people', 'attachments', 'formVersion:id,version,schema', 'organizationFormVersion:id,version,schema'])
             ->findOrFail($requestId);
 
         Gate::authorize('view', $accessRequest);

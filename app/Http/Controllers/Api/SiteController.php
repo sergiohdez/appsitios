@@ -14,17 +14,19 @@ class SiteController extends Controller
         $membership = $request->attributes->get('membership');
         abort_unless($membership->canRequest() || $membership->canApprove() || $membership->canManage(), 403);
 
-        $sites = $request->attributes->get('tenant')->sites()
+        $tenant = $request->attributes->get('tenant');
+        $formVersion = $tenant->requestFormVersions()->orderByDesc('version')->first();
+        $schema = $formVersion?->schema ?? ['fields' => []];
+
+        $sites = $tenant->sites()
             ->where('is_active', true)
             ->orderBy('name')
-            ->with('currentFormVersion:id,organization_id,site_id,version,schema')
-            ->get(['id', 'organization_id', 'name', 'code', 'address', 'form_schema'])
-            ->map(function ($site) {
-                $site->setAttribute('form_version_id', $site->currentFormVersion?->id);
-                $site->setAttribute('form_schema', $site->currentFormVersion?->schema ?? $site->form_schema ?? ['fields' => []]);
+            ->get(['id', 'organization_id', 'name', 'code', 'address']);
 
-                return $site;
-            });
+        $sites->each(function ($site) use ($formVersion, $schema): void {
+            $site->setAttribute('organization_form_version_id', $formVersion?->id);
+            $site->setAttribute('form_schema', $schema);
+        });
 
         return response()->json(['data' => $sites]);
     }
@@ -42,13 +44,6 @@ class SiteController extends Controller
         ])->validate();
 
         $site = $request->attributes->get('tenant')->sites()->create($data);
-        $site->formVersions()->create([
-            'organization_id' => $site->organization_id,
-            'version' => 1,
-            'schema' => ['fields' => []],
-            'published_by' => $request->user()->id,
-            'published_at' => now(),
-        ]);
 
         return response()->json(['data' => $site], 201);
     }

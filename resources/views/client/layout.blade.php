@@ -22,6 +22,7 @@
             <a href="{{ route('client.dashboard') }}">Resumen</a>
             <a href="{{ route('client.users.index') }}">Usuarios</a>
             <a href="{{ route('client.sites.index') }}">Sitios</a>
+            <a href="{{ route('client.request-form.edit') }}">Formulario</a>
         </nav>
         <div class="topbar-user"><span>{{ auth()->user()->name }}</span>
             <form method="post" action="{{ route('logout') }}">@csrf<button class="button quiet" type="submit">Salir</button></form>

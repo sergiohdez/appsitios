@@ -4,6 +4,7 @@
 /node_modules
 /public/build
 /public/storage
+/storage/app/private/
 /storage/*.key
 /storage/framework/cache/data/*
 !/storage/framework/cache/data/.gitkeep
@@ -16,7 +17,6 @@
 !/storage/logs/.gitkeep
 /bootstrap/cache/*.php
 .phpunit.cache
-.idea/workspace.xml
-.idea/dataSources/
+/.idea/
 .DS_Store
 Thumbs.db

@@ -1,0 +1,25 @@
+.request-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.request-actions .button {
+    min-width: 88px;
+}
+
+.request-actions .reject {
+    color: #9b4141;
+    background: #fff0ef;
+}
+
+.request-actions .reject:hover {
+    background: #fbe0de;
+}
+
+.request-actions .button:disabled {
+    opacity: .6;
+    cursor: wait;
+}

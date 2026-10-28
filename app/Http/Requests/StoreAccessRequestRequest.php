@@ -4,8 +4,8 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Models\Site;
-use App\Models\SiteFormVersion;
+use App\Models\OrganizationFormVersion;
+use App\Support\RequestFormDate;
 
 class StoreAccessRequestRequest extends FormRequest
 {
@@ -22,18 +22,16 @@ class StoreAccessRequestRequest extends FormRequest
     {
         $tenantId = $this->attributes->get('tenant')?->id;
         $siteId = $this->input('site_id');
-        $site = Site::query()->where('organization_id', $tenantId)->whereKey($siteId)->first();
-        $versionQuery = SiteFormVersion::query()->where('organization_id', $tenantId)->where('site_id', $siteId);
+        $versionQuery = OrganizationFormVersion::query()->where('organization_id', $tenantId);
 
-        if ($this->filled('form_version_id')) {
-            $versionQuery->whereKey($this->input('form_version_id'));
+        if ($this->filled('organization_form_version_id')) {
+            $versionQuery->whereKey($this->input('organization_form_version_id'));
         } else {
             $versionQuery->orderByDesc('version');
         }
 
         $version = $versionQuery->first();
-        $legacySchema = $site?->form_schema;
-        $this->formSchema = $version?->schema ?? (is_array($legacySchema) ? $legacySchema : ['fields' => []]);
+        $this->formSchema = $version?->schema ?? ['fields' => []];
         $this->formSchema['fields'] = array_values(array_filter(
             $this->formSchema['fields'] ?? [],
             fn ($field): bool => is_array($field)
@@ -44,14 +42,14 @@ class StoreAccessRequestRequest extends FormRequest
 
         $rules = [
             'site_id' => ['required', 'ulid', Rule::exists('sites', 'id')->where('organization_id', $tenantId)->where('is_active', true)],
-            'form_version_id' => ['nullable', 'ulid', Rule::exists('site_form_versions', 'id')->where('organization_id', $tenantId)->where('site_id', $siteId)],
+            'organization_form_version_id' => [$version ? 'required' : 'nullable', 'ulid', Rule::exists('organization_form_versions', 'id')->where('organization_id', $tenantId)],
             'purpose' => ['required', 'string', 'max:1000'],
-            'requested_from' => ['required', 'date', 'after_or_equal:now'],
-            'requested_until' => ['required', 'date', 'after:requested_from'],
+            'requested_from' => ['required', 'date', 'after:now'],
+            'requested_until' => ['required', 'date', 'after:now', 'after:requested_from'],
             'form_data' => ['sometimes', 'array'],
             'people' => ['required', 'array', 'min:1'],
             'people.*.full_name' => ['required', 'string', 'max:180'],
-            'people.*.document_type' => ['nullable', 'string', 'max:40'],
+            'people.*.document_type' => ['nullable', 'string', Rule::in(['CC', 'CE', 'PP', 'NIT'])],
             'people.*.document_number' => ['nullable', 'string', 'max:80'],
             'people.*.company' => ['nullable', 'string', 'max:180'],
             'attachments' => ['sometimes', 'array', 'max:10'],
@@ -63,20 +61,43 @@ class StoreAccessRequestRequest extends FormRequest
 
             switch ($field['type']) {
                 case 'text':
-                    $fieldRules = [...$fieldRules, 'string', 'max:2000'];
+                    $maxLength = max(1, min(config('request_forms.text_max_length'), (int) ($field['max_length'] ?? config('request_forms.text_max_length'))));
+                    $fieldRules = [...$fieldRules, 'string', 'max:'.$maxLength];
                     break;
                 case 'textarea':
-                    $fieldRules = [...$fieldRules, 'string', 'max:10000'];
+                    $maxLines = max(1, min(config('request_forms.textarea_max_lines'), (int) ($field['max_lines'] ?? config('request_forms.textarea_max_lines'))));
+                    $fieldRules = [...$fieldRules, 'string', 'max:'.config('request_forms.textarea_max_characters'), function ($attribute, $value, $fail) use ($maxLines): void {
+                        $lineCount = $value === '' ? 0 : preg_match_all('/\R/u', (string) $value) + 1;
+
+                        if ($lineCount > $maxLines) {
+                            $fail("El campo admite como máximo {$maxLines} líneas.");
+                        }
+                    }];
                     break;
                 case 'date':
-                    $fieldRules = [...$fieldRules, 'date_format:Y-m-d'];
+                    $dateFormat = array_key_exists($field['date_format'] ?? '', config('request_forms.date_formats'))
+                        ? $field['date_format']
+                        : 'Y-m-d';
+                    $fieldRules = [...$fieldRules, 'date_format:'.$dateFormat, function ($attribute, $value, $fail) use ($dateFormat): void {
+                        if (! is_string($value) || ! RequestFormDate::matchesFormat($value, $dateFormat)) {
+                            $fail('La fecha no existe o no coincide con el formato indicado.');
+                        }
+                    }];
                     break;
                 case 'select':
                     $options = is_array($field['options'] ?? null) ? $field['options'] : [];
                     $fieldRules = [...$fieldRules, 'string', Rule::in($options)];
                     break;
                 case 'file':
-                    $fieldRules = [...$fieldRules, 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'];
+                    $extensions = array_values(array_intersect(
+                        config('request_forms.file_extensions'),
+                        is_array($field['extensions'] ?? null) ? $field['extensions'] : config('request_forms.file_extensions'),
+                    ));
+                    if ($extensions === []) {
+                        $extensions = config('request_forms.file_extensions');
+                    }
+                    $mimeExtensions = implode(',', config('request_forms.file_extensions'));
+                    $fieldRules = [...$fieldRules, 'file', 'mimes:'.$mimeExtensions, 'extensions:'.implode(',', $extensions), 'max:'.config('request_forms.file_max_size_kb')];
                     break;
             }
 
@@ -86,18 +107,30 @@ class StoreAccessRequestRequest extends FormRequest
         return $rules;
     }
 
+    public function messages(): array
+    {
+        return [
+            'requested_from.required' => 'Indica la fecha y hora de inicio.',
+            'requested_from.date' => 'La fecha y hora de inicio no es válida.',
+            'requested_from.after' => 'La fecha y hora de inicio debe ser posterior al momento actual.',
+            'requested_until.required' => 'Indica la fecha y hora de finalización.',
+            'requested_until.date' => 'La fecha y hora de finalización no es válida.',
+            'requested_until.after' => 'La fecha y hora de finalización debe ser posterior a la hora de inicio y al momento actual.',
+            'people.*.document_type.in' => 'Selecciona un tipo de documento válido: CC, CE, PP o NIT.',
+        ];
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {
-            if ($this->filled('form_version_id')) {
-                $currentVersionId = SiteFormVersion::query()
+            if ($this->filled('organization_form_version_id')) {
+                $currentVersionId = OrganizationFormVersion::query()
                     ->where('organization_id', $this->attributes->get('tenant')?->id)
-                    ->where('site_id', $this->input('site_id'))
                     ->orderByDesc('version')
                     ->value('id');
 
-                if ($currentVersionId && $currentVersionId !== $this->input('form_version_id')) {
-                    $validator->errors()->add('form_version_id', 'El formulario de este sitio se actualizó. Recarga la página antes de enviar la solicitud.');
+                if ($currentVersionId && $currentVersionId !== $this->input('organization_form_version_id')) {
+                    $validator->errors()->add('organization_form_version_id', 'El formulario del cliente se actualizó. Recarga la página antes de enviar la solicitud.');
                 }
             }
 

@@ -25,6 +25,7 @@ class AccessRequestPolicy
         $membership = $user->membershipFor($accessRequest->organization_id);
 
         return $membership !== null
+            && $membership->is_active
             && $membership->canApprove()
             && $accessRequest->requester_id !== $user->id
             && $accessRequest->status === AccessRequestStatus::PENDING

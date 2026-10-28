@@ -3,17 +3,18 @@
 @section('title', 'Solicitud de acceso')
 
 @section('content')
+    @php($formSnapshot = $accessRequest->organizationFormVersion ?? $accessRequest->formVersion)
     <section class="page-heading">
         <div><p class="eyebrow">{{ $organization->name }} · SOLICITUD {{ $accessRequest->id }}</p><h1>{{ $accessRequest->site->name }}</h1>
             <p class="muted">Ingreso solicitado para {{ $accessRequest->requested_from->format('Y-m-d H:i') }} hasta {{ $accessRequest->requested_until->format('Y-m-d H:i') }}</p></div>
         <a class="button quiet" href="{{ route('platform.organizations.show', $organization) }}">Volver al cliente</a>
     </section>
 
-    @if ($accessRequest->formVersion?->schema['fields'] ?? [])
+    @if ($formSnapshot?->schema['fields'] ?? [])
         <section class="panel section-panel">
-            <div class="panel-heading"><div><p class="eyebrow">FORMULARIO DEL SITIO · VERSIÓN {{ $accessRequest->formVersion->version }}</p><h2>Información adicional</h2></div></div>
+            <div class="panel-heading"><div><p class="eyebrow">FORMULARIO · VERSIÓN {{ $formSnapshot->version }}</p><h2>Información adicional</h2></div></div>
             <dl class="detail-grid">
-                @foreach ($accessRequest->formVersion->schema['fields'] as $field)
+                @foreach ($formSnapshot->schema['fields'] as $field)
                     @php
                         $value = ($field['type'] ?? null) === 'file'
                             ? $accessRequest->attachments->firstWhere('form_field_key', $field['key'] ?? null)?->original_name

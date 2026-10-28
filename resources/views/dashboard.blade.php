@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Panel · {{ config('app.name') }}</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/approvals.css') }}?v={{ filemtime(public_path('css/approvals.css')) }}">
 </head>
 <body>
     <header class="topbar">
@@ -28,20 +29,28 @@
                     <label>Sitio
                         <select name="site_id" id="site_id" required><option value="">Cargando sitios…</option></select>
                     </label>
-                    <input name="form_version_id" id="form_version_id" type="hidden">
+                    <input name="organization_form_version_id" id="organization_form_version_id" type="hidden">
                     <label>Motivo de ingreso
                         <textarea name="purpose" rows="3" maxlength="1000" placeholder="Describe la actividad que se realizará" required></textarea>
                     </label>
                     <div class="two-columns">
-                        <label>Desde<input name="requested_from" type="datetime-local" required></label>
-                        <label>Hasta<input name="requested_until" type="datetime-local" required></label>
+                        <label>Desde<input name="requested_from" type="datetime-local" step="60" required></label>
+                        <label>Hasta<input name="requested_until" type="datetime-local" step="60" required></label>
                     </div>
                     <div id="people-list" class="people-list">
                         <fieldset class="person-card" data-person>
                             <legend class="field-title">Persona que ingresará</legend>
                             <label>Nombre completo<input name="people[0][full_name]" maxlength="180" autocomplete="off" required></label>
                             <div class="two-columns">
-                                <label>Tipo de documento<input name="people[0][document_type]" maxlength="40" placeholder="CC, pasaporte…"></label>
+                                <label>Tipo de documento
+                                    <select name="people[0][document_type]">
+                                        <option value="">Selecciona un tipo</option>
+                                        <option value="CC">CC — Cédula de Ciudadanía</option>
+                                        <option value="CE">CE — Cédula de Extranjería</option>
+                                        <option value="PP">PP — Pasaporte</option>
+                                        <option value="NIT">NIT — Número de Identificación Tributaria</option>
+                                    </select>
+                                </label>
                                 <label>Número<input name="people[0][document_number]" maxlength="80"></label>
                             </div>
                             <label>Empresa<input name="people[0][company]" maxlength="180"></label>
@@ -58,12 +67,13 @@
             </div>
             <div class="panel inbox-panel">
                 <div class="panel-heading"><div><p class="eyebrow">BANDEJA</p><h2>Actividad reciente</h2></div><button class="button quiet" id="refresh" type="button">Actualizar</button></div>
-                <div id="request-list" class="request-list"><div class="loading-state">Cargando solicitudes…</div></div>
+                    <div id="request-list" class="request-list"><div class="loading-state">Cargando solicitudes…</div></div>
             </div>
         </section>
         <footer class="page-footer">Las decisiones quedan registradas para consulta y auditoría.</footer>
     </main>
+    <script src="{{ asset('js/request-form-date.js') }}" defer></script>
     <script src="{{ asset('js/jquery-4.0.0.min.js') }}" defer></script>
-    <script src="{{ asset('js/app.js') }}" defer></script>
+    <script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}" defer></script>
 </body>
 </html>

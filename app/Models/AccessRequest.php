@@ -15,7 +15,7 @@ class AccessRequest extends Model
 
     protected $fillable = [
         'organization_id', 'site_id', 'requester_id', 'status', 'purpose',
-        'requested_from', 'requested_until', 'form_data', 'decided_by', 'decided_at', 'decision_comment', 'form_version_id',
+        'requested_from', 'requested_until', 'form_data', 'decided_by', 'decided_at', 'decision_comment', 'form_version_id', 'organization_form_version_id',
     ];
 
     protected function casts(): array
@@ -35,4 +35,5 @@ class AccessRequest extends Model
     public function people(): HasMany { return $this->hasMany(AccessPerson::class); }
     public function attachments(): HasMany { return $this->hasMany(AccessRequestAttachment::class); }
     public function formVersion(): BelongsTo { return $this->belongsTo(SiteFormVersion::class, 'form_version_id'); }
+    public function organizationFormVersion(): BelongsTo { return $this->belongsTo(OrganizationFormVersion::class, 'organization_form_version_id'); }
 }

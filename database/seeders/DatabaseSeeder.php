@@ -47,6 +47,10 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Cliente de demostración'],
             ['billing_email' => $email, 'contact_email' => $email, 'contact_name' => 'Administrador de demostración']
         );
+        $organization->requestFormVersions()->firstOrCreate(
+            ['version' => 1],
+            ['schema' => ['fields' => []], 'published_at' => now()]
+        );
 
         $user = User::updateOrCreate(
             ['email' => $email],

@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Auth\PasswordSetupController;
 use App\Http\Controllers\Auth\PasswordRecoveryController;
 use App\Http\Controllers\Client\ClientDashboardController;
+use App\Http\Controllers\Client\ClientRequestFormController;
 use App\Http\Controllers\Client\ClientSiteController;
 use App\Http\Controllers\Client\ClientUserController;
 use App\Http\Controllers\PlatformAdminAccessRequestController;
@@ -48,6 +49,8 @@ Route::prefix('/client')->name('client.')->middleware(['auth', 'tenant', 'client
     Route::delete('/users/{membershipId}', [ClientUserController::class, 'destroy'])->name('users.destroy');
     Route::post('/users/{membershipId}/invitation', [ClientUserController::class, 'resendInvitation'])
         ->middleware('throttle:5,1')->name('users.invitation');
+    Route::get('/request-form', [ClientRequestFormController::class, 'edit'])->name('request-form.edit');
+    Route::patch('/request-form', [ClientRequestFormController::class, 'update'])->name('request-form.update');
     Route::get('/sites', [ClientSiteController::class, 'index'])->name('sites.index');
     Route::get('/sites/create', [ClientSiteController::class, 'create'])->name('sites.create');
     Route::post('/sites', [ClientSiteController::class, 'store'])->name('sites.store');

@@ -68,6 +68,11 @@ class PlatformOrganizationController extends Controller
 
         [$organization, $adminUser] = DB::transaction(function () use ($data, $adminData, $audit): array {
             $organization = Organization::query()->create($data);
+            $organization->requestFormVersions()->create([
+                'version' => 1,
+                'schema' => ['fields' => []],
+                'published_at' => now(),
+            ]);
             $adminUser = $this->createClientAdmin($organization, $adminData['initial_admin_name'], $adminData['initial_admin_email']);
 
             $audit->record($organization, 'platform.organization.created', Organization::class, $organization->id, [
