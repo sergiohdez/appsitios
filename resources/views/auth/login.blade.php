@@ -29,6 +29,7 @@
             </label>
             <button class="button primary" type="submit">Ingresar</button>
         </form>
+        <p class="small"><a href="{{ route('password.request') }}">¿Olvidaste tu contraseña?</a></p>
         <p class="small muted">El acceso a cada cliente está aislado por membresía.</p>
     </main>
 </body>

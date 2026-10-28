@@ -9,6 +9,7 @@ use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
@@ -20,6 +21,7 @@ class PasswordSetupController extends Controller
         return view('auth.password-setup', [
             'token' => $token,
             'email' => $request->query('email', ''),
+            'isRecovery' => $request->query('purpose') === 'reset',
         ]);
     }
 
@@ -35,19 +37,29 @@ class PasswordSetupController extends Controller
         ]);
 
         $status = Password::reset($credentials, function (User $user, string $password): void {
-            $user->forceFill([
-                'password' => $password,
-                'email_verified_at' => now(),
-                'remember_token' => Str::random(60),
-            ])->save();
+            DB::transaction(function () use ($user, $password): void {
+                $user->forceFill([
+                    'password' => $password,
+                    'email_verified_at' => $user->email_verified_at ?: now(),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                DB::connection(config('session.connection'))
+                    ->table(config('session.table', 'sessions'))
+                    ->where('user_id', $user->getKey())
+                    ->delete();
+                $user->tokens()->delete();
+            });
 
             event(new PasswordReset($user));
         });
 
         if ($status !== Password::PASSWORD_RESET) {
-            throw ValidationException::withMessages(['email' => __($status)]);
+            throw ValidationException::withMessages([
+                'email' => 'El enlace venció o ya fue utilizado. Solicita un nuevo enlace para restablecer la contraseña.',
+            ]);
         }
 
-        return redirect()->route('login')->with('status', 'Contraseña configurada. Ya puedes ingresar.');
+        return redirect()->route('login')->with('status', 'Contraseña actualizada. Ya puedes iniciar sesión.');
     }
 }

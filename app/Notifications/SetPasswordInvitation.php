@@ -24,10 +24,11 @@ class SetPasswordInvitation extends Notification
         return (new MailMessage())
             ->subject('Enlace de acceso a AccesoSitios')
             ->greeting('Hola '.$notifiable->name)
-            ->line('Se solicitó activar o recuperar el acceso de esta cuenta de AccesoSitios.')
+            ->line('Se creó una cuenta de AccesoSitios para ti. Usa el enlace para definir tu contraseña.')
             ->action('Definir contraseña', route('password.reset', [
                 'token' => $this->token,
                 'email' => $notifiable->getEmailForPasswordReset(),
+                'purpose' => 'activate',
             ]))
             ->line("El enlace vence en {$expiresIn} minutos y solo puede utilizarse una vez.")
             ->salutation('Equipo de AccesoSitios');

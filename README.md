@@ -18,6 +18,8 @@ El administrador del cliente puede editar o desactivar sitios. Solo puede elimin
 
 El alta inicial crea una cuenta administradora de plataforma única. En el primer inicio de sesión debe configurar una aplicación compatible con TOTP y guardar los códigos de recuperación, que se muestran una sola vez. Un operador autorizado del servidor puede restablecer la contraseña y forzar una nueva inscripción de MFA con `php artisan platform-admin:reset-password --reset-mfa`.
 
+Los usuarios pueden iniciar la recuperación desde **¿Olvidaste tu contraseña?** en la pantalla de acceso. La aplicación muestra el mismo mensaje exista o no la cuenta, limita las solicitudes y envía un enlace de un solo uso que vence a los 60 minutos. Al cambiar la contraseña se revocan las sesiones almacenadas en la tabla configurada para sesiones, los tokens de API y las cookies de acceso persistente.
+
 ## Cómo instalarla en un ambiente desde cero
 
 ### Requisitos

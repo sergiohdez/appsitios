@@ -6,7 +6,7 @@ La primera entrega implementa un monolito modular Laravel con autenticación web
 
 La interfaz usa Blade, CSS y jQuery 4.0.0 en una copia estática local versionada en `public/js`; el MVP no requiere Node, npm, CDN ni un proceso de compilación frontend.
 
-Quedan para iteraciones siguientes: recuperación de acceso iniciada por usuarios; formularios configurables visualmente; facturación electrónica/impuestos y cobro automático; notificaciones por correo sobre solicitudes; aprobación en varios pasos; QR para visitantes y check-in/out; exportación; integraciones de control físico.
+Quedan para iteraciones siguientes: formularios configurables visualmente; facturación electrónica/impuestos y cobro automático; notificaciones por correo sobre solicitudes; aprobación en varios pasos; QR para visitantes y check-in/out; exportación; integraciones de control físico.
 
 ## Contextos y autorización
 
@@ -44,6 +44,7 @@ Una decisión bloquea la fila de solicitud dentro de una transacción, comprueba
 - Cifrar backups y secretos fuera del repositorio; rotar claves con procedimiento; establecer RPO/RTO, alarmas y restauraciones periódicas.
 - Para operación en Colombia, revisar las obligaciones de responsable/encargado, avisos/autorizaciones, finalidad, retención, consultas/reclamos, transferencias y acuerdos con clientes bajo Ley 1581 y sus normas. La plataforma puede actuar como encargado frente a datos que el cliente administra; la asignación exacta depende del servicio y contrato y requiere revisión legal.
 - Los códigos de recuperación MFA se muestran una sola vez, se guardan hasheados y se invalidan al usarse o al restablecer MFA. La recuperación administrativa requiere acceso autorizado al servidor y no crea una segunda cuenta administradora.
+- La recuperación de contraseña usa el broker de Laravel, con token de un solo uso y vencimiento de 60 minutos, limitación por IP y por correo, y una respuesta genérica para evitar enumerar cuentas. Tras el restablecimiento se rota `remember_token`, se eliminan sesiones de la tabla configurada y se revocan tokens personales de Sanctum.
 
 ## TDD y pruebas
 

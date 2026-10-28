@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\PasswordRecoveryLink;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,6 +26,11 @@ class User extends Authenticatable
     public function memberships(): HasMany { return $this->hasMany(Membership::class); }
 
     public function platformAdminAccount(): HasOne { return $this->hasOne(PlatformAdminAccount::class); }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new PasswordRecoveryLink($token));
+    }
 
     public function membershipFor(?string $organizationId): ?Membership
     {

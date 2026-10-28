@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Auth\PasswordSetupController;
+use App\Http\Controllers\Auth\PasswordRecoveryController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientSiteController;
 use App\Http\Controllers\Client\ClientUserController;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/login', fn () => view('auth.login'))->middleware('guest')->name('login');
 Route::post('/login', [SessionController::class, 'store'])->middleware(['guest', 'throttle:5,1'])->name('login.store');
+Route::get('/password/forgot', [PasswordRecoveryController::class, 'create'])->middleware('guest')->name('password.request');
+Route::post('/password/forgot', [PasswordRecoveryController::class, 'store'])->middleware(['guest', 'throttle:5,1'])->name('password.email');
 Route::get('/password/setup/{token}', [PasswordSetupController::class, 'create'])->middleware('guest')->name('password.reset');
 Route::post('/password/setup', [PasswordSetupController::class, 'store'])->middleware(['guest', 'throttle:5,1'])->name('password.update');
 Route::post('/logout', [SessionController::class, 'destroy'])->middleware('auth')->name('logout');
