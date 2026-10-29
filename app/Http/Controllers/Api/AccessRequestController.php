@@ -8,6 +8,7 @@ use App\Http\Requests\StoreAccessRequestRequest;
 use App\Models\AccessRequest;
 use App\Models\AuditEvent;
 use App\Models\Organization;
+use App\Services\AccessRequestNotifications;
 use App\Services\DecideAccessRequest;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -69,7 +70,7 @@ class AccessRequestController extends Controller
         return response()->json(['data' => $requests]);
     }
 
-    public function store(StoreAccessRequestRequest $request): JsonResponse
+    public function store(StoreAccessRequestRequest $request, AccessRequestNotifications $notifications): JsonResponse
     {
         $tenant = $request->attributes->get('tenant');
         $data = $request->validated();
@@ -154,6 +155,8 @@ class AccessRequestController extends Controller
             throw $exception;
         }
 
+        $notifications->notifyApprovers($accessRequest);
+
         return response()->json(['data' => $accessRequest->load(['site:id,name', 'people', 'attachments', 'formVersion:id,version,schema', 'organizationFormVersion:id,version,schema'])], 201);
     }
 
@@ -168,17 +171,17 @@ class AccessRequestController extends Controller
         return response()->json(['data' => $accessRequest]);
     }
 
-    public function approve(Request $request, string $requestId, DecideAccessRequest $decider): JsonResponse
+    public function approve(Request $request, string $requestId, DecideAccessRequest $decider, AccessRequestNotifications $notifications): JsonResponse
     {
-        return $this->decide($request, $requestId, AccessRequestStatus::APPROVED, $decider);
+        return $this->decide($request, $requestId, AccessRequestStatus::APPROVED, $decider, $notifications);
     }
 
-    public function reject(Request $request, string $requestId, DecideAccessRequest $decider): JsonResponse
+    public function reject(Request $request, string $requestId, DecideAccessRequest $decider, AccessRequestNotifications $notifications): JsonResponse
     {
-        return $this->decide($request, $requestId, AccessRequestStatus::REJECTED, $decider);
+        return $this->decide($request, $requestId, AccessRequestStatus::REJECTED, $decider, $notifications);
     }
 
-    private function decide(Request $request, string $requestId, AccessRequestStatus $status, DecideAccessRequest $decider): JsonResponse
+    private function decide(Request $request, string $requestId, AccessRequestStatus $status, DecideAccessRequest $decider, AccessRequestNotifications $notifications): JsonResponse
     {
         $validated = $request->validate(['comment' => ['nullable', 'string', 'max:1000']]);
         $accessRequest = $request->attributes->get('tenant')->accessRequests()->findOrFail($requestId);
@@ -190,6 +193,9 @@ class AccessRequestController extends Controller
             throw ValidationException::withMessages(['request' => $exception->getMessage()]);
         }
 
-        return response()->json(['data' => $accessRequest->fresh()->load('site:id,name')]);
+        $accessRequest = $accessRequest->fresh(['organization', 'requester', 'site']);
+        $notifications->notifyRequesterOfDecision($accessRequest, $request->user());
+
+        return response()->json(['data' => $accessRequest->load('site:id,name')]);
     }
 }

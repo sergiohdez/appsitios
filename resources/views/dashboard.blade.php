@@ -72,6 +72,18 @@
         </section>
         <footer class="page-footer">Las decisiones quedan registradas para consulta y auditoría.</footer>
     </main>
+    <dialog id="decision-dialog" class="decision-dialog" aria-labelledby="decision-dialog-title" aria-describedby="decision-dialog-description">
+        <form id="decision-form" method="dialog" class="decision-form">
+            <h2 id="decision-dialog-title">Decidir solicitud</h2>
+            <p id="decision-dialog-description" class="muted">Confirma la decisión. Puedes agregar un comentario para el solicitante.</p>
+            <label for="decision-comment">Comentario (opcional)</label>
+            <textarea id="decision-comment" name="comment" rows="4" maxlength="1000" placeholder="Escribe un comentario para el solicitante"></textarea>
+            <div class="decision-dialog-actions">
+                <button class="button quiet" id="decision-cancel" type="button">Cancelar</button>
+                <button class="button primary" id="decision-confirm" type="submit">Confirmar</button>
+            </div>
+        </form>
+    </dialog>
     <script src="{{ asset('js/request-form-date.js') }}" defer></script>
     <script src="{{ asset('js/jquery-4.0.0.min.js') }}" defer></script>
     <script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}" defer></script>

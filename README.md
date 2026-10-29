@@ -72,7 +72,7 @@ INITIAL_ADMIN_PASSWORD="USA_UNA_FRASE_SECRETA_DE_16_CARACTERES_O_MAS"
 
 Usa una dirección de correo que controles y una contraseña única de al menos 16 caracteres. No compartas ni subas el archivo `.env` al repositorio.
 
-Configura también un servicio SMTP real para las invitaciones de administradores y usuarios. En desarrollo, `MAIL_MAILER=log` escribe los mensajes en el registro de Laravel. Para producción, cambia `MAIL_MAILER=smtp` y completa `MAIL_SCHEME`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` y `MAIL_FROM_ADDRESS` con los datos de tu proveedor. Los enlaces de activación vencen en 60 minutos; desde la administración se puede enviar un nuevo enlace.
+Configura también un servicio SMTP real para las invitaciones y las notificaciones por correo. Cuando se crea una solicitud, se avisa a los aprobadores activos asignados a ese sitio, excepto al propio solicitante; al aprobarla o rechazarla, se informa al solicitante. Los correos incluyen el cliente, el sitio, el periodo y el nombre de quien creó o decidió la solicitud; el correo de decisión puede incluir el comentario del aprobador. No incluyen los datos de las personas visitantes ni adjuntos; para consultar los demás datos se debe ingresar a la aplicación. En desarrollo, `MAIL_MAILER=log` escribe los mensajes en el registro de Laravel. Para producción, cambia `MAIL_MAILER=smtp` y completa `MAIL_SCHEME`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` y `MAIL_FROM_ADDRESS` con los datos de tu proveedor. Los enlaces de activación vencen en 60 minutos; desde la administración se puede enviar un nuevo enlace.
 
 ### 3. Crear las tablas y el administrador inicial
 

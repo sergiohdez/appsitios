@@ -230,7 +230,7 @@ async function loadRequests() {
     $list.empty();
 
     requests.forEach((item) => {
-      const $row = $('<article>', { class: 'request-row' });
+      const $row = $('<article>', { class: 'request-row' }).attr('data-request-id', item.id);
       const $info = $('<div>');
       const $title = $('<p>', { class: 'request-title' }).text(item.site?.name || 'Sitio');
       const $meta = $('<p>', { class: 'request-meta' }).text(`${formatDate(item.requested_from)} · ${item.people?.length || 0} persona(s)`);
@@ -253,10 +253,10 @@ async function loadRequests() {
       if (item.can_decide) {
         const $actions = $('<div>', { class: 'request-actions' });
         $('<button>', { type: 'button', class: 'button primary', text: 'Aprobar' })
-          .on('click', () => decideRequest(item.id, 'approve', $row))
+          .on('click', () => openDecisionDialog(item.id, 'approve'))
           .appendTo($actions);
         $('<button>', { type: 'button', class: 'button quiet reject', text: 'Rechazar' })
-          .on('click', () => decideRequest(item.id, 'reject', $row))
+          .on('click', () => openDecisionDialog(item.id, 'reject'))
           .appendTo($actions);
         $row.append($actions);
       }
@@ -269,22 +269,41 @@ async function loadRequests() {
   }
 }
 
-async function decideRequest(requestId, decision, $row) {
-  if (decision === 'reject' && !window.confirm('¿Confirmas que deseas rechazar esta solicitud?')) return;
+function openDecisionDialog(requestId, decision) {
+  const dialog = document.getElementById('decision-dialog');
+  const form = document.getElementById('decision-form');
+  if (!dialog || !form) return;
 
+  form.dataset.requestId = requestId;
+  form.dataset.decision = decision;
+  const isApproval = decision === 'approve';
+  $('#decision-dialog-title').text(isApproval ? 'Aprobar solicitud' : 'Rechazar solicitud');
+  $('#decision-dialog-description').text(isApproval
+    ? 'Confirma la aprobación. Puedes agregar un comentario para el solicitante.'
+    : 'Confirma el rechazo. Puedes explicar el motivo en un comentario para el solicitante.');
+  $('#decision-confirm').text(isApproval ? 'Confirmar aprobación' : 'Confirmar rechazo').prop('disabled', false);
+  $('#decision-comment').val('').prop('disabled', false);
+  dialog.showModal();
+  $('#decision-comment').trigger('focus');
+}
+
+async function decideRequest(requestId, decision, comment, $row) {
   const $buttons = $row.find('.request-actions button').prop('disabled', true);
+  const $confirm = $('#decision-confirm').prop('disabled', true);
 
   try {
     await api('/sanctum/csrf-cookie');
     await api(`/api/v1/access-requests/${encodeURIComponent(requestId)}/${decision}`, {
       method: 'POST',
-      data: {},
+      data: { comment },
     });
+    document.getElementById('decision-dialog')?.close();
     showMessage(decision === 'approve' ? 'Solicitud aprobada.' : 'Solicitud rechazada.');
     await loadRequests();
   } catch (error) {
     showMessage(errorMessage(error), 'error');
     $buttons.prop('disabled', false);
+    $confirm.prop('disabled', false);
   }
 }
 
@@ -341,6 +360,22 @@ $(() => {
   });
 
   $('#request-form').on('submit', submitRequest);
+  $('#decision-form').on('submit', function (event) {
+    event.preventDefault();
+
+    const requestId = this.dataset.requestId;
+    const decision = this.dataset.decision;
+    const $row = $('.request-row').filter(function () {
+      return this.dataset.requestId === requestId;
+    }).first();
+
+    if (!requestId || !['approve', 'reject'].includes(decision) || !$row.length) return;
+
+    decideRequest(requestId, decision, $('#decision-comment').val().trim(), $row);
+  });
+  $('#decision-cancel').on('click', function () {
+    document.getElementById('decision-dialog')?.close();
+  });
   $('#request-form').on('input change', '[name="requested_from"], [name="requested_until"]', validateRequestDateRange);
   $('#custom-fields').on('input change', '[data-request-date]', function () { validateCustomDate(this); });
   $('#custom-fields').on('input', 'textarea[data-max-lines]', function () { validateCustomTextarea(this); });
