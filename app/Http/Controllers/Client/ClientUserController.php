@@ -9,6 +9,7 @@ use App\Models\Membership;
 use App\Models\User;
 use App\Services\SendPasswordSetupInvitation;
 use App\Services\ClientAdminAudit;
+use App\Services\ClientBulkImportService;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,9 +20,10 @@ use Illuminate\Validation\ValidationException;
 
 class ClientUserController extends Controller
 {
-    public function index(Request $request): ViewContract
+    public function index(Request $request, ClientBulkImportService $imports): ViewContract
     {
         $tenant = $request->attributes->get('tenant');
+        $imports->purgeExpired($tenant->id);
         $memberships = $tenant->memberships()
             ->whereIn('role', [MembershipRole::APPROVER->value, MembershipRole::REQUESTER->value])
             ->with(['user:id,name,email,email_verified_at,is_active', 'approvableSites:id,name'])

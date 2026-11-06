@@ -8,6 +8,7 @@
             <p class="muted">Cada usuario tiene un solo perfil. Las cuentas nuevas reciben un enlace para definir su contraseña.</p></div>
         <a class="button primary" href="{{ route('client.users.create') }}">Crear usuario</a>
     </section>
+    @include('client.imports.panel', ['entity' => 'users'])
     <section class="panel">
         <div class="table-wrap"><table class="data-table">
             <thead><tr><th>Nombre</th><th>Correo</th><th>Perfil</th><th>Sitios de aprobación</th><th>Cuenta</th><th>Membresía</th><th></th></tr></thead>

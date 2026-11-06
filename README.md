@@ -22,11 +22,22 @@ El alta inicial crea una cuenta administradora de plataforma única. En el prime
 
 Los usuarios pueden iniciar la recuperación desde **¿Olvidaste tu contraseña?** en la pantalla de acceso. La aplicación muestra el mismo mensaje exista o no la cuenta, limita las solicitudes y envía un enlace de un solo uso que vence a los 60 minutos. Al cambiar la contraseña se revocan las sesiones almacenadas en la tabla configurada para sesiones, los tokens de API y las cookies de acceso persistente.
 
+## Importación masiva
+
+Solo el administrador del cliente (`client_admin`) puede importar en `/client/users` (usuarios) y `/client/sites` (sitios). Se admite un archivo por carga con extensión **CSV, XLS o XLSX** (máximo 20 MB).
+
+- **Usuarios:** columnas Nombre, correo electrónico y Perfil. Con aprobadores, agrega la opcional Sitios asignados (códigos o nombres separados por `;`). Perfil admite `Aprobador`/`Solicitante` (también `approver`/`requester`).
+- **Sitios:** columnas Nombre, código, dirección y zona horaria (IANA, por ejemplo `America/Bogota`). Código y dirección pueden quedar vacíos.
+
+La primera fila puede ser encabezado (reconoce alias en español e inglés, por ejemplo `Nombre`, `correo`, `perfil`, `código`) o bien omitirse; sin encabezados se usa el orden indicado arriba. Si la primera fila parece encabezado y falta una columna obligatoria (usuarios: Nombre, Correo electrónico, Perfil; sitios: Nombre, Zona horaria), no se crea la importación y se informa el error.
+
+Tras subir el archivo se muestra cuántos registros hay. Al pulsar **Iniciar importación** se procesan en **lotes de 50** con el mensaje **Procesando registro # de ###**. Si un registro falla una validación se muestra el error, se guarda en el archivo de fallidos y continúa con el siguiente; un registro guardado cuenta para las validaciones de unicidad siguientes. Al finalizar (o incluso si la importación quedó incompleta) el enlace **Descargar registros fallidos** ofrece un CSV con los fallos para corregirlos. Las importaciones expiran a las 24 horas. En la lista en pantalla se paginan los resultados de 100 en 100 (botones Anterior/Siguiente).
+
 ## Cómo instalarla en un ambiente desde cero
 
 ### Requisitos
 
-- PHP 8.3 o posterior, con `pdo_mysql`, `mbstring`, `openssl`, `fileinfo`, `xml`, `ctype`, `curl`, `dom` y `tokenizer` habilitadas.
+- PHP 8.3 o posterior, con `pdo_mysql`, `mbstring`, `openssl`, `fileinfo`, `xml`, `ctype`, `curl`, `dom`, `tokenizer`, `zip`, `gd`, `zlib`, `iconv` y `filter` habilitadas. Las extensiones `zip` y `gd` son obligatorias para la importación masiva con PhpSpreadsheet (leer XLSX).
 - Composer 2.
 - MariaDB o MySQL.
 - Git.

@@ -8,6 +8,7 @@
             <p class="muted">Lugares físicos donde se gestionan solicitudes de acceso.</p></div>
         <a class="button primary" href="{{ route('client.sites.create') }}">Crear sitio</a>
     </section>
+    @include('client.imports.panel', ['entity' => 'sites'])
     <section class="panel">
         <div class="table-wrap"><table class="data-table">
             <thead><tr><th>Nombre</th><th>Código</th><th>Dirección</th><th>Zona horaria</th><th>Solicitudes</th><th>Estado</th><th>Acciones</th></tr></thead>

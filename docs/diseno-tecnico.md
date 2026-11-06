@@ -6,7 +6,7 @@ La primera entrega implementa un monolito modular Laravel con autenticación web
 
 La interfaz usa Blade, CSS y jQuery 4.0.0 en una copia estática local versionada en `public/js`; el MVP no requiere Node, npm, CDN ni un proceso de compilación frontend.
 
-Quedan para iteraciones siguientes: facturación electrónica/impuestos y cobro automático; notificaciones por correo sobre solicitudes; aprobación en varios pasos; QR para visitantes y check-in/out; exportación; integraciones de control físico.
+Quedan para iteraciones siguientes: facturación electrónica/impuestos y cobro automático; aprobación en varios pasos; QR para visitantes y check-in/out; exportación; integraciones de control físico.
 
 ## Contextos y autorización
 
@@ -30,6 +30,15 @@ Si el producto luego permite que una identidad pertenezca a varios clientes, agr
 - `access_request_attachments`: metadatos y ruta privada; descarga exige autorización del registro padre. Los archivos de campos configurables guardan además la clave del campo que los produjo.
 - `audit_events`: cambios relevantes sin copiar información personal a metadata.
 - `billing_periods`: snapshot de puestos facturables, tarifa en unidades menores, total, moneda y estado.
+
+### Importación masiva (usuarios y sitios)
+
+- `client_bulk_imports`: ULID, `organization_id`, `created_by_user_id`, `entity` (`users`|`sites`), `status` (`pending`|`in_progress`|`completed`), `errors_path`, contadores (`total_records`, `processed_records`, `successful_records`, `failed_records`) y `expires_at` (24 h). Solo `errors_path` se persiste; los registros se guardan como filas para poder reanudar y descargar fallos parciales.
+- `client_bulk_import_records`: `client_bulk_import_id`, `source_row` (1-based en el archivo), `data` (JSON normalizado), `status` (`pending`|`succeeded`|`failed`) y `errors` (JSON). Unicidad `(client_bulk_import_id, source_row)`.
+- Rutas: `POST /client/imports/{entity}/preview`, `POST /client/imports/{importId}/next` (un registro por llamada), `GET /client/imports/{importId}/errors` (CSV de fallidos, disponible aunque la importación esté incompleta). Todas bajo `client-admin`.
+- `ClientBulkImportFileParser`: lee CSV con `PhpSpreadsheet\Reader\Csv` (delimitador `,;`\\t) y XLS/XLSX con `IOFactory`. No usa `toArray()`; recorre `getRowIterator()` en **chunks de 1000 filas** y normaliza por chunk para no materializar toda la hoja. Detecta encabezados por alias; si la primera fila contiene algún alias pero falta una columna obligatoria (usuarios: Nombre, Correo electrónico, Perfil; sitios: Nombre, Zona horaria) lanza `ValidationException` sin crear la importación. Sin ningún alias usa mapeo posicional (usuarios: Nombre, Correo, Perfil [+ Sitios]; sitios: Nombre, Código, Dirección, Zona).
+- `ClientBulkImportService::processNext()`: procesa un registro por transacción (unicidad contra la BD, por lo que un alta anterior invalida un duplicado posterior en el mismo archivo). Si `failed_records > 0` regenera `registros-fallidos.csv` (BOM UTF-8) tras cada fallo, para que el enlace exista incluso sin llegar a `completed`. `findForDownload()` genera el CSV bajo demanda si falta.
+- Frontend (`public/js/client-bulk-import.js`): inicializa `processed_records: 0` tras el preview, muestra "Procesando registro # de ###", agrupa en lotes de 50 (oculta la etiqueta de lote si solo hay uno) y pagina los resultados visibles de 100 en 100.
 
 La propiedad `organizations.brand_config.color` permite personalizar el color de acento del panel del cliente. La vista acepta solo colores CSS de texto simple (palabras alfabéticas o hexadecimales) antes de insertarlos en una variable CSS; así evita que el JSON se convierta en CSS arbitrario. El ejemplo `{"color":"red"}` aplica rojo a los acentos y botones del área `/client`; la plataforma y la pantalla de acceso usan el tema general. El locale disponible es `es`; la zona horaria se escoge desde `DateTimeZone::listIdentifiers()` y se valida de nuevo en el servidor.
 

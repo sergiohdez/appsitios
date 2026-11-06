@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Auth\PasswordSetupController;
 use App\Http\Controllers\Auth\PasswordRecoveryController;
 use App\Http\Controllers\Client\ClientDashboardController;
+use App\Http\Controllers\Client\ClientBulkImportController;
 use App\Http\Controllers\Client\ClientRequestFormController;
 use App\Http\Controllers\Client\ClientSiteController;
 use App\Http\Controllers\Client\ClientUserController;
@@ -47,6 +48,12 @@ Route::prefix('/client')->name('client.')->middleware(['auth', 'tenant', 'client
     Route::get('/users/{membershipId}/edit', [ClientUserController::class, 'edit'])->name('users.edit');
     Route::patch('/users/{membershipId}', [ClientUserController::class, 'update'])->name('users.update');
     Route::delete('/users/{membershipId}', [ClientUserController::class, 'destroy'])->name('users.destroy');
+    Route::post('/imports/{entity}/preview', [ClientBulkImportController::class, 'preview'])
+        ->whereIn('entity', ['users', 'sites'])->name('imports.preview');
+    Route::post('/imports/{importId}/next', [ClientBulkImportController::class, 'next'])
+        ->whereUlid('importId')->name('imports.next');
+    Route::get('/imports/{importId}/errors', [ClientBulkImportController::class, 'errors'])
+        ->whereUlid('importId')->name('imports.errors');
     Route::post('/users/{membershipId}/invitation', [ClientUserController::class, 'resendInvitation'])
         ->middleware('throttle:5,1')->name('users.invitation');
     Route::get('/request-form', [ClientRequestFormController::class, 'edit'])->name('request-form.edit');

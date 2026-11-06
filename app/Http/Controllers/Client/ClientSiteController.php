@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Models\Site;
 use App\Services\ClientAdminAudit;
+use App\Services\ClientBulkImportService;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,9 +16,11 @@ use Illuminate\Support\Facades\DB;
 
 class ClientSiteController extends Controller
 {
-    public function index(Request $request): ViewContract
+    public function index(Request $request, ClientBulkImportService $imports): ViewContract
     {
-        $sites = $request->attributes->get('tenant')->sites()
+        $tenant = $request->attributes->get('tenant');
+        $imports->purgeExpired($tenant->id);
+        $sites = $tenant->sites()
             ->withCount(['accessRequests', 'approvers'])
             ->orderBy('name')
             ->paginate(15);
