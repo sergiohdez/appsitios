@@ -58,7 +58,7 @@ class AccessRequestNotifications
         $accessRequest->loadMissing(['organization', 'requester', 'site']);
         $status = $accessRequest->status;
 
-        if (! in_array($status, [AccessRequestStatus::APPROVED, AccessRequestStatus::REJECTED], true)
+        if (! in_array($status, [AccessRequestStatus::APPROVED, AccessRequestStatus::REJECTED, AccessRequestStatus::CANCELLED], true)
             || ! $accessRequest->requester
             || ! $accessRequest->organization
             || ! $accessRequest->site) {

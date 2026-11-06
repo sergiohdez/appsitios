@@ -24,6 +24,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'platform-admin.mfa', 'tenant',
     Route::post('/access-requests/{requestId}/reject', [AccessRequestController::class, 'reject'])
         ->whereUlid('requestId')
         ->name('api.access-requests.reject');
+    Route::post('/access-requests/{requestId}/cancel', [AccessRequestController::class, 'cancel'])
+        ->whereUlid('requestId')
+        ->name('api.access-requests.cancel');
     Route::get('/access-requests/{requestId}/attachments/{attachmentId}', AccessRequestAttachmentController::class)
         ->whereUlid('requestId')
         ->whereUlid('attachmentId')

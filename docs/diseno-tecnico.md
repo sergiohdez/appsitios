@@ -48,6 +48,8 @@ La edición de sitio mantiene tenant y código único. Desactivar un sitio impid
 
 Una decisión bloquea la fila de solicitud dentro de una transacción, comprueba estado pendiente, pertenencia a cliente, rol, asignación de sitio y diferencia entre solicitante y aprobador; luego actualiza el estado y agrega una auditoría. Evita que dos aprobaciones concurrentes se sobrescriban.
 
+La cancelación sigue el mismo patrón (`POST /api/v1/access-requests/{requestId}/cancel`, `AccessRequestPolicy::cancel` + `CancelAccessRequest` + `CancellationRules`): solo quien creó la solicitud o un aprobador activo con ese sitio asignado puede cancelar, y únicamente en `pending` o en `approved` con `requested_from` futura. En `approved` ya iniciada, `rejected`, `cancelled` o de otro cliente no se puede cancelar. Actualiza `status` a `cancelled`, registra actor/fecha/comentario y auditoría `access_request.cancelled`; el listado expone `can_cancel` y el panel `/` muestra el botón **Cancelar** con confirmación. Si cancela un aprobador, avisa al solicitante con `AccessRequestDecision` (`cancelada`).
+
 ## Seguridad y privacidad que debe acompañar el producto
 
 - Proteger todo endpoint con sesión Sanctum/CSRF para la SPA propia; habilitar tokens personales con abilities solo si una integración externa lo necesita. Usar HTTPS, expiración corta de sesión, regenerar la sesión al iniciar y throttling. La cuenta de plataforma exige MFA TOTP con códigos de recuperación de un solo uso.

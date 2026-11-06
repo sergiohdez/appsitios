@@ -31,4 +31,23 @@ class AccessRequestPolicy
             && $accessRequest->status === AccessRequestStatus::PENDING
             && $membership->approvableSites()->whereKey($accessRequest->site_id)->exists();
     }
+
+    public function cancel(User $user, AccessRequest $accessRequest): bool
+    {
+        $membership = $user->membershipFor($accessRequest->organization_id);
+
+        if ($membership === null || ! $membership->is_active) {
+            return false;
+        }
+
+        if (! in_array($accessRequest->status, [AccessRequestStatus::PENDING, AccessRequestStatus::APPROVED], true)) {
+            return false;
+        }
+
+        $isCreator = $accessRequest->requester_id === $user->id && $membership->canRequest();
+        $isApprover = $membership->canApprove()
+            && $membership->approvableSites()->whereKey($accessRequest->site_id)->exists();
+
+        return $isCreator || $isApprover;
+    }
 }

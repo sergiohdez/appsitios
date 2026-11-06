@@ -28,15 +28,18 @@ class AccessRequestDecision extends Notification
         $statusLabel = match ($this->status) {
             AccessRequestStatus::APPROVED => 'aprobada',
             AccessRequestStatus::REJECTED => 'rechazada',
+            AccessRequestStatus::CANCELLED => 'cancelada',
             default => 'actualizada',
         };
+
+        $verb = $this->status === AccessRequestStatus::CANCELLED ? 'Canceló' : 'Decidió';
 
         $mail = (new MailMessage())
             ->subject('Tu solicitud de acceso fue '.$statusLabel)
             ->greeting('Hola '.$notifiable->name)
             ->line("Tu solicitud para el sitio {$this->siteName} de {$this->organizationName} fue {$statusLabel}.")
             ->line("Periodo solicitado: {$this->requestedPeriod}.")
-            ->line("Decidió: {$this->reviewerName}.");
+            ->line("{$verb}: {$this->reviewerName}.");
 
         if ($this->comment !== null && $this->comment !== '') {
             $mail->line('Comentario: '.$this->comment);

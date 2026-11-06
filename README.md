@@ -18,6 +18,8 @@ El formulario del cliente ofrece la lista de zonas horarias de PHP y actualmente
 
 El administrador del cliente puede editar o desactivar sitios. Solo puede eliminar un sitio si no tiene usuarios aprobadores asignados ni solicitudes asociadas; los sitios inactivos dejan de recibir nuevas solicitudes. Puede eliminar usuarios cuando no tengan solicitudes pendientes propias ni pendientes asignadas para aprobación. La baja de usuario se guarda como eliminación lógica y conserva las solicitudes, auditoría e identidad histórica.
 
+Una solicitud puede cancelarse solo por quien la creó o por un aprobador con ese sitio asignado, mientras esté en **Pendiente** o en **Aprobada con inicio futuro**. Una vez iniciada, rechazada o ya cancelada no puede cancelarse. La cancelación queda registrada con actor, fecha, comentario opcional y auditoría; si cancela un aprobador, el solicitante recibe un correo de aviso.
+
 El alta inicial crea una cuenta administradora de plataforma única. En el primer inicio de sesión debe configurar una aplicación compatible con TOTP y guardar los códigos de recuperación, que se muestran una sola vez. Un operador autorizado del servidor puede restablecer la contraseña y forzar una nueva inscripción de MFA con `php artisan platform-admin:reset-password --reset-mfa`.
 
 Los usuarios pueden iniciar la recuperación desde **¿Olvidaste tu contraseña?** en la pantalla de acceso. La aplicación muestra el mismo mensaje exista o no la cuenta, limita las solicitudes y envía un enlace de un solo uso que vence a los 60 minutos. Al cambiar la contraseña se revocan las sesiones almacenadas en la tabla configurada para sesiones, los tokens de API y las cookies de acceso persistente.

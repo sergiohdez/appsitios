@@ -9,6 +9,8 @@ use App\Models\AccessRequest;
 use App\Models\AuditEvent;
 use App\Models\Organization;
 use App\Services\AccessRequestNotifications;
+use App\Services\CancelAccessRequest;
+use App\Services\CancellationRules;
 use App\Services\DecideAccessRequest;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -21,7 +23,7 @@ use Throwable;
 
 class AccessRequestController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, CancellationRules $cancellationRules): JsonResponse
     {
         $tenant = $request->attributes->get('tenant');
         $membership = $request->attributes->get('membership');
@@ -57,7 +59,7 @@ class AccessRequestController extends Controller
         }
 
         $requests = $query->latest()->paginate(25);
-        $requests->getCollection()->each(function (AccessRequest $accessRequest) use ($membership, $user, $approvableSiteIds): void {
+        $requests->getCollection()->each(function (AccessRequest $accessRequest) use ($membership, $user, $approvableSiteIds, $cancellationRules): void {
             $canDecide = $membership->is_active
                 && $membership->canApprove()
                 && $accessRequest->status === AccessRequestStatus::PENDING
@@ -65,6 +67,13 @@ class AccessRequestController extends Controller
                 && in_array($accessRequest->site_id, $approvableSiteIds, true);
 
             $accessRequest->setAttribute('can_decide', $canDecide);
+
+            $assignedToSite = $membership->canApprove()
+                && in_array($accessRequest->site_id, $approvableSiteIds, true);
+            $accessRequest->setAttribute(
+                'can_cancel',
+                $cancellationRules->canCancel($accessRequest, $membership, $assignedToSite),
+            );
         });
 
         return response()->json(['data' => $requests]);
@@ -179,6 +188,27 @@ class AccessRequestController extends Controller
     public function reject(Request $request, string $requestId, DecideAccessRequest $decider, AccessRequestNotifications $notifications): JsonResponse
     {
         return $this->decide($request, $requestId, AccessRequestStatus::REJECTED, $decider, $notifications);
+    }
+
+    public function cancel(Request $request, string $requestId, CancelAccessRequest $canceller, AccessRequestNotifications $notifications): JsonResponse
+    {
+        $validated = $request->validate(['comment' => ['nullable', 'string', 'max:1000']]);
+        $accessRequest = $request->attributes->get('tenant')->accessRequests()->findOrFail($requestId);
+        Gate::authorize('cancel', $accessRequest);
+
+        try {
+            $canceller->cancel($accessRequest, $request->user(), $validated['comment'] ?? null);
+        } catch (\DomainException $exception) {
+            throw ValidationException::withMessages(['request' => $exception->getMessage()]);
+        }
+
+        $accessRequest = $accessRequest->fresh(['organization', 'requester', 'site']);
+
+        if ($request->user()->id !== $accessRequest->requester_id) {
+            $notifications->notifyRequesterOfDecision($accessRequest, $request->user());
+        }
+
+        return response()->json(['data' => $accessRequest->load('site:id,name')]);
     }
 
     private function decide(Request $request, string $requestId, AccessRequestStatus $status, DecideAccessRequest $decider, AccessRequestNotifications $notifications): JsonResponse

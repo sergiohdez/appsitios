@@ -261,6 +261,14 @@ async function loadRequests() {
         $row.append($actions);
       }
 
+      if (item.can_cancel) {
+        const $cancelActions = $('<div>', { class: 'request-actions' });
+        $('<button>', { type: 'button', class: 'button quiet reject cancel', text: 'Cancelar' })
+          .on('click', () => cancelRequest(item.id))
+          .appendTo($cancelActions);
+        $row.append($cancelActions);
+      }
+
       $row.appendTo($list);
     });
   } catch (error) {
@@ -304,6 +312,28 @@ async function decideRequest(requestId, decision, comment, $row) {
     showMessage(errorMessage(error), 'error');
     $buttons.prop('disabled', false);
     $confirm.prop('disabled', false);
+  }
+}
+
+async function cancelRequest(requestId) {
+  if (!window.confirm('¿Cancelar esta solicitud? Esta acción no se puede deshacer.')) return;
+
+  const $row = $('.request-row').filter(function () {
+    return this.dataset.requestId === requestId;
+  }).first();
+  const $buttons = $row.find('.request-actions button').prop('disabled', true);
+
+  try {
+    await api('/sanctum/csrf-cookie');
+    await api(`/api/v1/access-requests/${encodeURIComponent(requestId)}/cancel`, {
+      method: 'POST',
+      data: {},
+    });
+    showMessage('Solicitud cancelada.');
+    await loadRequests();
+  } catch (error) {
+    showMessage(errorMessage(error), 'error');
+    $buttons.prop('disabled', false);
   }
 }
 
