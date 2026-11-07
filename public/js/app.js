@@ -250,6 +250,12 @@ async function loadRequests() {
         }
       });
 
+      const $detailsActions = $('<div>', { class: 'request-actions' });
+      $('<button>', { type: 'button', class: 'button quiet', text: 'Ver detalles' })
+        .on('click', () => openRequestDetails(item.id))
+        .appendTo($detailsActions);
+      $row.append($detailsActions);
+
       if (item.can_decide) {
         const $actions = $('<div>', { class: 'request-actions' });
         $('<button>', { type: 'button', class: 'button primary', text: 'Aprobar' })
@@ -293,6 +299,175 @@ function openDecisionDialog(requestId, decision) {
   $('#decision-comment').val('').prop('disabled', false);
   dialog.showModal();
   $('#decision-comment').trigger('focus');
+}
+
+function formatBytes(size) {
+  const bytes = Number(size || 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+function renderRequestDetails(item) {
+  const $body = $('#request-details-body').empty();
+  $('#request-details-title').text(item.site?.name || 'Detalle de la solicitud');
+
+  const $general = $('<dl>', { class: 'request-details-grid' });
+  const addField = (label, value) => {
+    const $item = $('<div>');
+    $item.append($('<dt>').text(label), $('<dd>').text(value || '—'));
+    $general.append($item);
+  };
+
+  addField('Estado', labels[item.status] || item.status);
+  addField('Solicitante', item.requester ? `${item.requester.name} · ${item.requester.email}` : '—');
+  addField('Desde', item.requested_from ? formatDate(item.requested_from) : '—');
+  addField('Hasta', item.requested_until ? formatDate(item.requested_until) : '—');
+  if (item.decided_at) {
+    addField('Decisión', `${item.decided_by?.name || '—'} · ${formatDate(item.decided_at)}`);
+  }
+  if (item.decision_comment) {
+    const $comment = $('<div>', { class: 'wide' }).append(
+      $('<dt>').text('Comentario de decisión'),
+      $('<dd>').text(item.decision_comment),
+    );
+    $general.append($comment);
+  }
+  const $purpose = $('<div>', { class: 'wide' }).append(
+    $('<dt>').text('Motivo'),
+    $('<dd>').text(item.purpose || '—'),
+  );
+  $general.append($purpose);
+
+  const $generalSection = $('<section>').append($('<h3>').text('Solicitud'), $general);
+  $body.append($generalSection);
+
+  const formatCustomValue = (value) => {
+    if (Array.isArray(value)) return value.join(', ');
+    if (value !== null && typeof value === 'object') return JSON.stringify(value);
+    return value;
+  };
+
+  const formSchema = item.organization_form_version?.schema || item.form_version?.schema;
+  const fields = formSchema?.fields || [];
+  const coveredKeys = new Set(fields.map((field) => field.key));
+  const orphanKeys = Object.keys(item.form_data || {}).filter((key) => !coveredKeys.has(key));
+  if (fields.length || orphanKeys.length) {
+    const $custom = $('<dl>', { class: 'request-details-grid' });
+    fields.forEach((field) => {
+      const attachment = (item.attachments || []).find((a) => a.form_field_key === field.key);
+      const rawValue = field.type === 'file' ? attachment?.original_name : formatCustomValue(item.form_data?.[field.key]);
+      const $field = $('<div>').append(
+        $('<dt>').text(field.label || 'Campo'),
+        $('<dd>').text(rawValue !== undefined && rawValue !== null && rawValue !== '' ? rawValue : '—'),
+      );
+      $custom.append($field);
+    });
+    orphanKeys.forEach((key) => {
+      const rawValue = formatCustomValue(item.form_data[key]);
+      if (rawValue === undefined || rawValue === null || rawValue === '') return;
+      $custom.append($('<div>').append(
+        $('<dt>').text(key),
+        $('<dd>').text(rawValue),
+      ));
+    });
+    $body.append($('<section>').append($('<h3>').text('Información adicional'), $custom));
+  }
+
+  const $peopleSection = $('<section>').append($('<h3>').text('Personas'));
+  if ((item.people || []).length) {
+    const $table = $('<table>', { class: 'request-details-people' });
+    const $thead = $('<thead>').append($('<tr>').append(
+      $('<th>').text('Nombre'), $('<th>').text('Documento'), $('<th>').text('Número'), $('<th>').text('Empresa'),
+    ));
+    const $tbody = $('<tbody>');
+    (item.people || []).forEach((person) => {
+      $tbody.append($('<tr>').append(
+        $('<td>').text(person.full_name || '—'),
+        $('<td>').text(person.document_type || '—'),
+        $('<td>').text(person.document_number || '—'),
+        $('<td>').text(person.company || '—'),
+      ));
+    });
+    $table.append($thead, $tbody);
+    $peopleSection.append($table);
+  } else {
+    $peopleSection.append($('<p>', { class: 'muted' }).text('No hay personas asociadas.'));
+  }
+  $body.append($peopleSection);
+
+  const $filesSection = $('<section>').append($('<h3>').text('Adjuntos'));
+  if ((item.attachments || []).length) {
+    const $list = $('<ul>', { class: 'request-details-attachment-list' });
+    (item.attachments || []).forEach((attachment) => {
+      const label = `${attachment.original_name}${formatBytes(attachment.size_bytes) ? ` (${formatBytes(attachment.size_bytes)})` : ''}`;
+      const $entry = $('<li>').append($('<span>').text(label));
+      $('<button>', { type: 'button', class: 'button quiet', text: 'Descargar' })
+        .on('click', () => downloadAttachment(item.id, attachment))
+        .appendTo($entry);
+      $list.append($entry);
+    });
+    $filesSection.append($list);
+  } else {
+    $filesSection.append($('<p>', { class: 'muted' }).text('Esta solicitud no tiene adjuntos.'));
+  }
+  $body.append($filesSection);
+}
+
+async function openRequestDetails(requestId) {
+  const dialog = document.getElementById('request-details-dialog');
+  if (!dialog) return;
+
+  $('#request-details-body').empty().append($('<p>', { class: 'muted' }).text('Cargando detalle…'));
+  dialog.showModal();
+
+  try {
+    await api('/sanctum/csrf-cookie');
+    const result = await api(`/api/v1/access-requests/${encodeURIComponent(requestId)}`);
+    renderRequestDetails(result.data || {});
+  } catch (error) {
+    dialog.close();
+    showMessage(errorMessage(error), 'error');
+  }
+}
+
+async function downloadAttachment(requestId, attachment) {
+  const url = attachment.download_url || `/api/v1/access-requests/${encodeURIComponent(requestId)}/attachments/${encodeURIComponent(attachment.id)}`;
+
+  try {
+    const response = await fetch(url, {
+      credentials: 'same-origin',
+      headers: {
+        Accept: '*/*',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-XSRF-TOKEN': csrfToken(),
+      },
+    });
+
+    if (!response.ok) {
+      let message = 'No fue posible descargar el archivo.';
+      try {
+        const payload = await response.json();
+        message = payload.message || Object.values(payload.errors || {}).flat()[0] || message;
+      } catch (_) {
+        // Respuesta binaria no legible como JSON; se conserva el mensaje genérico.
+      }
+      showMessage(message, 'error');
+      return;
+    }
+
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = attachment.original_name || 'archivo';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 4000);
+  } catch (error) {
+    showMessage(errorMessage(error), 'error');
+  }
 }
 
 async function decideRequest(requestId, decision, comment, $row) {
@@ -405,6 +580,9 @@ $(() => {
   });
   $('#decision-cancel').on('click', function () {
     document.getElementById('decision-dialog')?.close();
+  });
+  $('#request-details-close').on('click', function () {
+    document.getElementById('request-details-dialog')?.close();
   });
   $('#request-form').on('input change', '[name="requested_from"], [name="requested_until"]', validateRequestDateRange);
   $('#custom-fields').on('input change', '[data-request-date]', function () { validateCustomDate(this); });

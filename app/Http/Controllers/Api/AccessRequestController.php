@@ -166,18 +166,54 @@ class AccessRequestController extends Controller
 
         $notifications->notifyApprovers($accessRequest);
 
-        return response()->json(['data' => $accessRequest->load(['site:id,name', 'people', 'attachments', 'formVersion:id,version,schema', 'organizationFormVersion:id,version,schema'])], 201);
+        return response()->json(['data' => $accessRequest->load(['site:id,name', 'people:id,access_request_id,full_name,document_type,document_number,company', 'attachments:id,access_request_id,original_name,form_field_key', 'formVersion:id,version,schema', 'organizationFormVersion:id,version,schema'])], 201);
     }
 
-    public function show(Request $request, string $requestId): JsonResponse
+    public function show(Request $request, string $requestId, CancellationRules $cancellationRules): JsonResponse
     {
+        $membership = $request->attributes->get('membership');
         $accessRequest = $request->attributes->get('tenant')->accessRequests()
-            ->with(['site:id,name', 'people', 'attachments', 'formVersion:id,version,schema', 'organizationFormVersion:id,version,schema'])
+            ->with([
+                'site:id,name',
+                'requester:id,name,email',
+                'decidedBy:id,name',
+                'people:id,access_request_id,full_name,document_type,document_number,company',
+                'attachments:id,access_request_id,original_name,mime_type,size_bytes,form_field_key',
+                'formVersion:id,version,schema',
+                'organizationFormVersion:id,version,schema',
+            ])
             ->findOrFail($requestId);
 
         Gate::authorize('view', $accessRequest);
 
-        return response()->json(['data' => $accessRequest]);
+        $approvableSiteIds = $membership->canApprove()
+            ? $membership->approvableSites()->pluck('sites.id')->all()
+            : [];
+        $assignedToSite = $membership->canApprove()
+            && in_array($accessRequest->site_id, $approvableSiteIds, true);
+
+        $accessRequest->setAttribute(
+            'can_decide',
+            $membership->is_active
+                && $membership->canApprove()
+                && $accessRequest->status === AccessRequestStatus::PENDING
+                && $accessRequest->requester_id !== $request->user()->id
+                && $assignedToSite,
+        );
+        $accessRequest->setAttribute(
+            'can_cancel',
+            $cancellationRules->canCancel($accessRequest, $membership, $assignedToSite),
+        );
+
+        $accessRequest->attachments->each(function ($attachment) use ($accessRequest): void {
+            $attachment->setAttribute(
+                'download_url',
+                route('api.access-requests.attachments.show', [$accessRequest->id, $attachment->id]),
+            );
+        });
+
+        return response()->json(['data' => $accessRequest])
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function approve(Request $request, string $requestId, DecideAccessRequest $decider, AccessRequestNotifications $notifications): JsonResponse

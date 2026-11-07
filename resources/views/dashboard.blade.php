@@ -84,6 +84,15 @@
             </div>
         </form>
     </dialog>
+    <dialog id="request-details-dialog" class="decision-dialog request-details-dialog" aria-labelledby="request-details-title">
+        <div class="decision-form request-details">
+            <h2 id="request-details-title">Detalle de la solicitud</h2>
+            <div id="request-details-body" class="request-details-body" aria-live="polite"></div>
+            <div class="decision-dialog-actions">
+                <button class="button quiet" id="request-details-close" type="button">Cerrar</button>
+            </div>
+        </div>
+    </dialog>
     <script src="{{ asset('js/request-form-date.js') }}" defer></script>
     <script src="{{ asset('js/jquery-4.0.0.min.js') }}" defer></script>
     <script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}" defer></script>

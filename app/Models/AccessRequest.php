@@ -32,6 +32,7 @@ class AccessRequest extends Model
     public function organization(): BelongsTo { return $this->belongsTo(Organization::class); }
     public function site(): BelongsTo { return $this->belongsTo(Site::class); }
     public function requester(): BelongsTo { return $this->belongsTo(User::class, 'requester_id'); }
+    public function decidedBy(): BelongsTo { return $this->belongsTo(User::class, 'decided_by'); }
     public function people(): HasMany { return $this->hasMany(AccessPerson::class); }
     public function attachments(): HasMany { return $this->hasMany(AccessRequestAttachment::class); }
     public function formVersion(): BelongsTo { return $this->belongsTo(SiteFormVersion::class, 'form_version_id'); }
